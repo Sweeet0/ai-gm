@@ -1,11 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
-import type {
-    GameState,
-    GeminiResponse,
-    WorldConfig,
-} from "@/types";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { GameState, GeminiResponse, GenreConfig, WorldConfig } from "@/types/game";
 import worldConfig from "@/world_config.json";
 import TypewriterText from "./TypewriterText";
 import StatusPanel from "./StatusPanel";
@@ -19,15 +15,12 @@ interface Props {
     onRestart: () => void;
 }
 
-// No initial mock data, we will fetch the prologue on mount
-
-
 export default function GameInterface({
     worldSetting,
     genreKey,
     onRestart,
 }: Props) {
-    const genreConfig = config.genres[genreKey] || config.genres.fantasy;
+    const genreConfig: GenreConfig = config.genres[genreKey] || config.genres.fantasy;
 
     const [gameState, setGameState] = useState<GameState>({
         phase: "playing",
@@ -37,7 +30,7 @@ export default function GameInterface({
         currentResponse: null,
         seed: Math.floor(Math.random() * 1000000),
         turnCount: 0,
-        isLoading: true, // Start with loading for prologue
+        isLoading: false,
         error: null,
     });
 
@@ -48,8 +41,6 @@ export default function GameInterface({
 
     const sendAction = useCallback(
         async (action: string) => {
-            console.log(`[GameInterface] sendAction called with action: "${action}", count: ${gameState.turnCount}`);
-
             setGameState((prev) => ({
                 ...prev,
                 isLoading: true,
@@ -78,7 +69,6 @@ export default function GameInterface({
                 }
 
                 const data: GeminiResponse = await res.json();
-                console.log("[GameInterface] API response received:", data.scenario_text.slice(0, 50) + "...");
 
                 setGameState((prev) => ({
                     ...prev,
@@ -105,13 +95,11 @@ export default function GameInterface({
     );
 
     useEffect(() => {
-        if (!initialized.current && gameState.history.length === 0) {
+        if (!initialized.current) {
             initialized.current = true;
-            console.log("[GameInterface] Effect: Calling initial sendAction", { historyLength: gameState.history.length });
             sendAction("");
         }
-    }, [sendAction, gameState.history.length]);
-
+    }, [sendAction]);
 
     const handleTypewriterComplete = useCallback(() => {
         setTypingComplete(true);
@@ -186,29 +174,17 @@ export default function GameInterface({
                         <div
                             className="w-full aspect-square flex items-center justify-center"
                             style={{
-                                background:
-                                    "linear-gradient(135deg, var(--color-parchment-dark), var(--color-canvas-bg))",
+                                background: "linear-gradient(135deg, var(--color-parchment-dark), var(--color-canvas-bg))",
                                 borderRadius: "4px",
                             }}
                         >
                             <div className="text-center p-4">
                                 <span className="text-4xl mb-2 block animate-wobble">🎨</span>
-                                <p
-                                    className="text-xs italic"
-                                    style={{ color: "var(--color-pencil-soft)" }}
-                                >
-                                    {response?.image_prompt
-                                        ? "Image prompt ready"
-                                        : "画像生成待ち..."}
+                                <p className="text-xs italic" style={{ color: "var(--color-pencil-soft)" }}>
+                                    {response?.image_prompt ? "Image prompt ready" : "画像生成待ち..."}
                                 </p>
                                 {response?.image_prompt && (
-                                    <p
-                                        className="text-xs mt-2"
-                                        style={{
-                                            color: "var(--color-pencil-gray)",
-                                            wordBreak: "break-word",
-                                        }}
-                                    >
+                                    <p className="text-xs mt-2" style={{ color: "var(--color-pencil-gray)", wordBreak: "break-word" }}>
                                         &quot;{response.image_prompt.slice(0, 80)}...&quot;
                                     </p>
                                 )}
@@ -219,94 +195,79 @@ export default function GameInterface({
                     {/* Status panel */}
                     {response && (
                         <div className="animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
-                            <StatusPanel
-                                status={response.status}
-                                genreConfig={genreConfig}
-                            />
+                            <StatusPanel status={response.status} genreConfig={genreConfig} />
                         </div>
                     )}
-
-                    {/* Audio prompt badge (Removed from here, moved to header) */}
                 </div>
 
                 {/* Right column: Narrative + Actions */}
                 <div className="lg:col-span-2 flex flex-col gap-4 overflow-hidden">
-                    {/* World setting banner */}
-                    <div
-                        className="card-sketch p-3 text-sm animate-fade-in-up"
-                        style={{ animationDelay: "0.05s" }}
-                    >
+                    <div className="card-sketch p-3 text-sm animate-fade-in-up" style={{ animationDelay: "0.05s" }}>
                         <span className="font-bold">🌍 舞台：</span>
-                        <span style={{ color: "var(--color-ink-light)" }}>
-                            {worldSetting}
-                        </span>
+                        <span style={{ color: "var(--color-ink-light)" }}>{worldSetting}</span>
                     </div>
 
-                    {/* Narrative log */}
-                    <div
-                        className="card-sketch p-5 sm:p-6 flex-1 flex flex-col animate-fade-in-up min-h-0"
-                        style={{ animationDelay: "0.1s" }}
-                    >
-                        <h3
-                            className="title-handwritten text-lg mb-3"
-                            style={{ color: "var(--color-accent)" }}
-                        >
+                    <div className="card-sketch p-5 sm:p-6 flex-1 flex flex-col animate-fade-in-up min-h-0" style={{ animationDelay: "0.1s" }}>
+                        <h3 className="title-handwritten text-lg mb-3" style={{ color: "var(--color-accent)" }}>
                             📜 物語
                         </h3>
 
-                        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                            {gameState.isLoading && !response ? (
-                                <div className="flex items-center gap-2">
-                                    <span className="animate-pulse-gentle text-xl">✍️</span>
-                                    <span
-                                        className="text-sm italic"
-                                        style={{ color: "var(--color-pencil-soft)" }}
-                                    >
-                                        GMが物語を紡いでいます...
-                                    </span>
-                                </div>
-                            ) : response ? (
-                                <div
-                                    className="leading-relaxed text-sm sm:text-base"
-                                    style={{ whiteSpace: "pre-wrap" }}
-                                >
-                                    <TypewriterText
-                                        text={response.scenario_text}
-                                        speed={25}
-                                        onComplete={handleTypewriterComplete}
-                                    />
+                        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar relative">
+                            <div className="narrative-content-wrapper min-h-full">
+                                {response?.isBackup && (
+                                    <div className="mb-4 p-3 bg-amber-900/40 border border-amber-500/50 rounded-lg text-xs flex gap-2 animate-pulse-gentle">
+                                        <span>⚠️</span>
+                                        <span>
+                                            メインモデルの制限によりバックアップモデル（{response.modelName}）を使用しています。
+                                            一時的に物語の精度や整合性が低下する可能性があります。
+                                        </span>
+                                    </div>
+                                )}
 
-                                    {pendingAction && gameState.isLoading && (
-                                        <div className="mt-6 animate-fade-in-up">
-                                            <div className="story-log-action">
-                                                {pendingAction}
-                                            </div>
-                                            <div className="flex items-center gap-2 mt-2">
-                                                <span className="animate-pulse-gentle text-lg">✍️</span>
-                                                <span className="text-xs italic opacity-50">GMが次の展開を執筆中...</span>
-                                            </div>
-                                        </div>
-                                    )}
+                                {!response && !gameState.isLoading && !gameState.error && (
+                                    <div className="flex flex-col items-center justify-center py-20 opacity-40">
+                                        <span className="text-4xl mb-4">✍️</span>
+                                        <p className="title-handwritten text-lg">物語の断片を読み込んでいます...</p>
+                                    </div>
+                                )}
 
-                                    {bgmEnabled && response.audio_prompt && !gameState.isLoading && (
-                                        <div className="mt-4 text-xs italic opacity-40 flex items-center gap-2">
-                                            <span>🎵</span>
-                                            <span>{response.audio_prompt}</span>
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <p
-                                    className="text-sm italic"
-                                    style={{ color: "var(--color-pencil-soft)" }}
-                                >
-                                    冒険が始まるのを待っています...
-                                </p>
-                            )}
+                                {gameState.isLoading && !response ? (
+                                    <div className="flex items-center gap-2">
+                                        <span className="animate-pulse-gentle text-xl">✍️</span>
+                                        <span className="text-sm italic" style={{ color: "var(--color-pencil-soft)" }}>
+                                            GMが物語を紡いでいます...
+                                        </span>
+                                    </div>
+                                ) : response ? (
+                                    <div className="leading-relaxed text-sm sm:text-base" style={{ whiteSpace: "pre-wrap" }}>
+                                        <TypewriterText text={response.scenario_text} speed={25} onComplete={handleTypewriterComplete} />
+
+                                        {pendingAction && gameState.isLoading && (
+                                            <div className="mt-6 animate-fade-in-up">
+                                                <div className="story-log-action">{pendingAction}</div>
+                                                <div className="flex items-center gap-2 mt-2">
+                                                    <span className="animate-pulse-gentle text-lg">✍️</span>
+                                                    <span className="text-xs italic opacity-50">GMが次の展開を執筆中...</span>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {bgmEnabled && response.audio_prompt && !gameState.isLoading && (
+                                            <div className="mt-4 text-xs italic opacity-40 flex items-center gap-2">
+                                                <span>🎵</span>
+                                                <span>{response.audio_prompt}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <p className="text-sm italic" style={{ color: "var(--color-pencil-soft)" }}>
+                                        冒険が始まるのを待っています...
+                                    </p>
+                                )}
+                            </div>
                         </div>
                     </div>
 
-                    {/* Action bar */}
                     {response && (
                         <div className="flex-none animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
                             <ActionBar
@@ -335,17 +296,13 @@ export default function GameInterface({
 
                         <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
                             {gameState.history.length === 0 ? (
-                                <p className="text-center italic opacity-50 py-10">
-                                    まだ物語の記録はありません。
-                                </p>
+                                <p className="text-center italic opacity-50 py-10">まだ物語の記録はありません。</p>
                             ) : (
                                 gameState.history.map((entry, i) => (
                                     <div key={i} className="animate-fade-in-up" style={{ animationDelay: `${i * 0.05}s` }}>
                                         {entry.role === "user" ? (
                                             <div className="flex justify-end pr-2">
-                                                <div className="story-log-action">
-                                                    {entry.content}
-                                                </div>
+                                                <div className="story-log-action">{entry.content}</div>
                                             </div>
                                         ) : (
                                             <div className="p-3 bg-black/10 rounded-lg border-l-4 border-accent/30 text-sm leading-relaxed whitespace-pre-wrap">

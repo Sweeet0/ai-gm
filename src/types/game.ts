@@ -13,6 +13,8 @@ export interface GeminiResponse {
     choices: [string, string, string, string];
     image_prompt: string;
     audio_prompt: string;
+    modelName?: string;
+    isBackup?: boolean;
 }
 
 export interface HistoryEntry {

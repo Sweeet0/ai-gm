@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const NEXT_PUBLIC_GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
-const GEMINI_MODEL = "gemini-2.5-flash";
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${NEXT_PUBLIC_GEMINI_API_KEY}`;
-console.log("Requesting URL:", GEMINI_URL);
+
+const MODEL_HIERARCHY = [
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-3-flash-preview",
+];
+
+const BACKUP_HIERARCHY = [
+    "gemma-3-27b-it",
+    "gemma-3-12b-it",
+];
 
 const SYSTEM_PROMPT = `あなたは対話型ゲームマスター（GM）です。プレイヤーの選択と想像力を尊重し、没入感のある最高のゲーム体験を提供してください。
 
@@ -34,6 +42,28 @@ const SYSTEM_PROMPT = `あなたは対話型ゲームマスター（GM）です�
   "audio_prompt": "(English) Short ambient audio description for the current scene."
 }`;
 
+async function callModel(model: string, userPrompt: string, seed: number) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${NEXT_PUBLIC_GEMINI_API_KEY}`;
+
+    const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            contents: [{ parts: [{ text: userPrompt }] }],
+            systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+            generationConfig: {
+                temperature: 0.7,
+                topP: 0.95,
+                topK: 40,
+                maxOutputTokens: 2048,
+                responseMimeType: "application/json",
+                seed: seed,
+            },
+        }),
+    });
+    return res;
+}
+
 export async function POST(req: NextRequest) {
     try {
         const { worldSetting, genreKey, action, history, seed, turnCount } = await req.json();
@@ -54,60 +84,59 @@ PLAYER ACTION: ${action || "ゲームスタート"}
 上記を踏まえ、物語の次の展開を生成してください。必ずJSON形式で出力してください。
 `;
 
-        const geminiRes = await fetch(GEMINI_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: userPrompt }] }],
-                systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-                generationConfig: {
-                    temperature: 0.7,
-                    topP: 0.95,
-                    topK: 40,
-                    maxOutputTokens: 2048,
-                    responseMimeType: "application/json",
-                    seed: seed,
-                },
-            }),
-        });
+        const allModels = [...MODEL_HIERARCHY, ...BACKUP_HIERARCHY];
+        let lastError = null;
 
-        if (!geminiRes.ok) {
+        for (const model of allModels) {
+            console.log(`Trying model: ${model}`);
+            const geminiRes = await callModel(model, userPrompt, seed);
+
             if (geminiRes.status === 429) {
+                console.warn(`Quota exceeded for ${model}. Trying next...`);
+                continue;
+            }
+
+            if (!geminiRes.ok) {
                 return NextResponse.json(
-                    { error: "クォータ制限（回数制限）に達しました。少し時間を置いて（約1分後）再度お試しください。" },
-                    { status: 429 }
+                    { error: `Model ${model} returned error ${geminiRes.status}` },
+                    { status: geminiRes.status }
                 );
             }
-            return NextResponse.json(
-                { error: `Gemini API returned ${geminiRes.status}` },
-                { status: 502 }
-            );
+
+            const rawData = await geminiRes.json();
+            const text = rawData.candidates?.[0]?.content?.parts?.[0]?.text;
+
+            if (!text) {
+                console.error(`Empty response from ${model}`);
+                continue;
+            }
+
+            // Robust JSON extraction
+            let jsonStr = text.trim();
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                jsonStr = jsonMatch[0];
+            }
+
+            try {
+                const data = JSON.parse(jsonStr);
+                const isBackup = BACKUP_HIERARCHY.includes(model);
+                return NextResponse.json({
+                    ...data,
+                    modelName: model,
+                    isBackup: isBackup,
+                });
+            } catch (parseError) {
+                console.error(`JSON parse error from ${model}. Raw text:`, text);
+                continue;
+            }
         }
 
-        const rawData = await geminiRes.json();
-        const text = rawData.candidates?.[0]?.content?.parts?.[0]?.text;
+        return NextResponse.json(
+            { error: "クォータ制限（回数制限）により全モデルが利用不可です。時間を空けて再度お試しください。" },
+            { status: 429 }
+        );
 
-        if (!text) {
-            throw new Error("No response text from Gemini");
-        }
-
-        // Robust JSON extraction
-        let jsonStr = text.trim();
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-            jsonStr = jsonMatch[0];
-        }
-
-        try {
-            const data = JSON.parse(jsonStr);
-            return NextResponse.json(data);
-        } catch (parseError) {
-            console.error("JSON parse error. Raw text:", text);
-            return NextResponse.json(
-                { error: "AIからの応答を正しく解析できませんでした。もう一度試してください。" },
-                { status: 500 }
-            );
-        }
     } catch (error) {
         console.error("API Error:", error);
         return NextResponse.json(
