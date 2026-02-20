@@ -151,12 +151,14 @@ export default function GameInterface({
                     body: JSON.stringify({ prompt: data.imagePrompt }),
                 });
                 if (imgRes.ok) {
-                    const imgData = await imgRes.json();
+                    const blob = await imgRes.blob();
+                    const imageUrl = URL.createObjectURL(blob);
+
                     setGameState(prev => {
                         if (prev.currentResponse?.scenario_text === data.scenario_text) {
                             return {
                                 ...prev,
-                                currentResponse: { ...prev.currentResponse!, imageUrl: imgData.imageUrl }
+                                currentResponse: { ...prev.currentResponse!, imageUrl }
                             };
                         }
                         return prev;
