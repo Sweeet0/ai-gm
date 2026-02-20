@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
 
         // Using Imagen 3 via Gemini API / Google AI Studio endpoint
         // Standard endpoint for Imagen 3 in AI Studio
-        const model = "imagen-3.0-generate-001";
+        const model = "imagen-4.0-fast-generate-001";
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:predict?key=${NEXT_PUBLIC_GEMINI_API_KEY}`;
 
         const res = await fetch(url, {
