@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const NEXT_PUBLIC_GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
-const GEMINI_MODEL = "gemini-1.5-flash";
+const GEMINI_MODEL = "gemini-3-flash";
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${NEXT_PUBLIC_GEMINI_API_KEY}`;
 console.log("Requesting URL:", GEMINI_URL);
 
