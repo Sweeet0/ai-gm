@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import type {
     GameState,
     GeminiResponse,
@@ -42,6 +42,7 @@ export default function GameInterface({
     });
 
     const [typingComplete, setTypingComplete] = useState(false);
+    const initialized = useRef(false);
 
     const sendAction = useCallback(
         async (action: string) => {
@@ -97,8 +98,11 @@ export default function GameInterface({
     );
 
     useEffect(() => {
-        sendAction("");
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+        if (!initialized.current) {
+            initialized.current = true;
+            sendAction("");
+        }
+    }, [sendAction]);
 
 
     const handleChoice = (choice: string) => {
@@ -221,7 +225,7 @@ export default function GameInterface({
 
                     {/* Narrative log */}
                     <div
-                        className="card-sketch p-5 sm:p-6 flex-1 min-h-[200px] animate-fade-in-up"
+                        className="card-sketch p-5 sm:p-6 flex-1 min-h-[300px] lg:h-[500px] flex flex-col animate-fade-in-up"
                         style={{ animationDelay: "0.1s" }}
                     >
                         <h3
@@ -231,35 +235,42 @@ export default function GameInterface({
                             📜 物語
                         </h3>
 
-                        {gameState.isLoading ? (
-                            <div className="flex items-center gap-2">
-                                <span className="animate-pulse-gentle text-xl">✍️</span>
-                                <span
+                        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                            {gameState.isLoading && !response ? (
+                                <div className="flex items-center gap-2">
+                                    <span className="animate-pulse-gentle text-xl">✍️</span>
+                                    <span
+                                        className="text-sm italic"
+                                        style={{ color: "var(--color-pencil-soft)" }}
+                                    >
+                                        GMが物語を紡いでいます...
+                                    </span>
+                                </div>
+                            ) : response ? (
+                                <div
+                                    className="leading-relaxed text-sm sm:text-base"
+                                    style={{ whiteSpace: "pre-wrap" }}
+                                >
+                                    <TypewriterText
+                                        text={response.scenario_text}
+                                        speed={25}
+                                        onComplete={() => setTypingComplete(true)}
+                                    />
+                                    {gameState.isLoading && (
+                                        <div className="mt-4 flex items-center gap-2">
+                                            <span className="animate-pulse-gentle text-lg">✍️</span>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <p
                                     className="text-sm italic"
                                     style={{ color: "var(--color-pencil-soft)" }}
                                 >
-                                    GMが物語を紡いでいます...
-                                </span>
-                            </div>
-                        ) : response ? (
-                            <div
-                                className="leading-relaxed text-sm sm:text-base"
-                                style={{ whiteSpace: "pre-wrap" }}
-                            >
-                                <TypewriterText
-                                    text={response.scenario_text}
-                                    speed={25}
-                                    onComplete={() => setTypingComplete(true)}
-                                />
-                            </div>
-                        ) : (
-                            <p
-                                className="text-sm italic"
-                                style={{ color: "var(--color-pencil-soft)" }}
-                            >
-                                冒険が始まるのを待っています...
-                            </p>
-                        )}
+                                    冒険が始まるのを待っています...
+                                </p>
+                            )}
+                        </div>
                     </div>
 
                     {/* Action bar */}
