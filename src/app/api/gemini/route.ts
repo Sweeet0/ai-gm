@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const NEXT_PUBLIC_GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
 const GEMINI_MODEL = "gemini-1.5-flash";
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1/${GEMINI_MODEL}:generateContent?key=${NEXT_PUBLIC_GEMINI_API_KEY}`;
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/${GEMINI_MODEL}:generateContent?key=${NEXT_PUBLIC_GEMINI_API_KEY}`;
 
 // System prompt defining the GM role & enforcing JSON output
 const SYSTEM_PROMPT = `あなたは究極の対話型ゲームマスター（GM）です。プレイヤーの選択と想像力を尊重し、没入感のある最高のゲーム体験を提供してください。
