@@ -14,7 +14,9 @@ export interface GeminiResponse {
     is_question: boolean;
     is_ending?: boolean;
     image_prompt: string;
+    imageUrl?: string;
     audio_prompt: string;
+    audioUrl?: string;
     modelName?: string;
     isBackup?: boolean;
 }

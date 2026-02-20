@@ -109,6 +109,9 @@ export default function GameInterface({
                     ],
                 }));
                 setPendingAction(null);
+
+                // Start fetching multimedia in the background
+                fetchMultimedia(data);
             } catch (err) {
                 console.error("API call failed:", err);
                 setGameState((prev) => ({
@@ -134,6 +137,60 @@ export default function GameInterface({
         setTypingComplete(false);
         initialized.current = false;
         // Trigger initialization again
+    }, []);
+
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    const fetchMultimedia = useCallback(async (data: GeminiResponse) => {
+        // Fetch Image
+        if (data.image_prompt) {
+            try {
+                const imgRes = await fetch("/api/imagen", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ prompt: data.image_prompt }),
+                });
+                if (imgRes.ok) {
+                    const imgData = await imgRes.json();
+                    setGameState(prev => {
+                        if (prev.currentResponse?.scenario_text === data.scenario_text) {
+                            return {
+                                ...prev,
+                                currentResponse: { ...prev.currentResponse!, imageUrl: imgData.imageUrl }
+                            };
+                        }
+                        return prev;
+                    });
+                }
+            } catch (err) {
+                console.error("Failed to fetch image:", err);
+            }
+        }
+
+        // Fetch Audio
+        if (data.audio_prompt) {
+            try {
+                const audioRes = await fetch("/api/audio", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ prompt: data.audio_prompt }),
+                });
+                if (audioRes.ok) {
+                    const audioData = await audioRes.json();
+                    setGameState(prev => {
+                        if (prev.currentResponse?.scenario_text === data.scenario_text) {
+                            return {
+                                ...prev,
+                                currentResponse: { ...prev.currentResponse!, audioUrl: audioData.audioUrl }
+                            };
+                        }
+                        return prev;
+                    });
+                }
+            } catch (err) {
+                console.error("Failed to fetch audio:", err);
+            }
+        }
     }, []);
 
     const handleEnterDeepDive = useCallback(() => {
@@ -172,6 +229,17 @@ export default function GameInterface({
     const [bgmEnabled, setBgmEnabled] = useState(true);
 
     const response = gameState.currentResponse;
+
+    // Audio playback control
+    useEffect(() => {
+        if (!audioRef.current) return;
+
+        if (bgmEnabled && response?.audioUrl) {
+            audioRef.current.play().catch(e => console.warn("Auto-play blocked or audio failed:", e));
+        } else {
+            audioRef.current.pause();
+        }
+    }, [bgmEnabled, response?.audioUrl]);
 
     return (
         <div className="fixed-viewport flex flex-col p-3 sm:p-6 bg-parchment">
@@ -228,25 +296,47 @@ export default function GameInterface({
                     {/* Image canvas */}
                     <div className="frame-sketch animate-fade-in-up">
                         <div
-                            className="w-full aspect-square flex items-center justify-center"
+                            className="w-full aspect-square flex items-center justify-center overflow-hidden relative"
                             style={{
                                 background: "linear-gradient(135deg, var(--color-parchment-dark), var(--color-canvas-bg))",
                                 borderRadius: "4px",
                             }}
                         >
-                            <div className="text-center p-4">
-                                <span className="text-4xl mb-2 block animate-wobble">🎨</span>
-                                <p className="text-xs italic" style={{ color: "var(--color-pencil-soft)" }}>
-                                    {response?.image_prompt ? "Image prompt ready" : "画像生成待ち..."}
-                                </p>
-                                {response?.image_prompt && (
-                                    <p className="text-xs mt-2" style={{ color: "var(--color-pencil-gray)", wordBreak: "break-word" }}>
-                                        &quot;{response.image_prompt.slice(0, 80)}...&quot;
+                            {response?.imageUrl ? (
+                                <img
+                                    src={response.imageUrl}
+                                    alt={response.image_prompt}
+                                    className="w-full h-full object-cover animate-fade-in"
+                                />
+                            ) : (
+                                <div className="text-center p-4">
+                                    <span className="text-4xl mb-2 block animate-wobble">
+                                        {response?.image_prompt ? "🎨" : "🖼️"}
+                                    </span>
+                                    <p className="text-xs italic" style={{ color: "var(--color-pencil-soft)" }}>
+                                        {response?.image_prompt ? "AIが情景を描いています..." : "冒険の始まりを待っています..."}
                                     </p>
-                                )}
-                            </div>
+                                    {response?.image_prompt && (
+                                        <div className="mt-3 flex justify-center">
+                                            <div className="flex gap-1">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-accent animate-bounce" style={{ animationDelay: "0s" }}></div>
+                                                <div className="w-1.5 h-1.5 rounded-full bg-accent animate-bounce" style={{ animationDelay: "0.1s" }}></div>
+                                                <div className="w-1.5 h-1.5 rounded-full bg-accent animate-bounce" style={{ animationDelay: "0.2s" }}></div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
+
+                    {/* Hidden Audio Element */}
+                    <audio
+                        ref={audioRef}
+                        src={response?.audioUrl}
+                        loop
+                        className="hidden"
+                    />
 
                     {/* Status panel */}
                     {response && (
