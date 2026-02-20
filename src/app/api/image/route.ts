@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
 
         // Hugging Face API for Stability AI / SDXL
         const model = "stabilityai/stable-diffusion-xl-base-1.0";
-        const url = `https://api-inference.huggingface.co/models/${model}`;
+        const url = `https://router.huggingface.co/models/${model}`;
 
         const res = await fetch(url, {
             method: "POST",
