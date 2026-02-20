@@ -1,0 +1,86 @@
+{
+  "genres": {
+    "fantasy": {
+      "label": "ファンタジー",
+      "stats": {
+        "hp": { "label": "体力", "icon": "❤️", "max": 100 },
+        "mp": { "label": "魔力", "icon": "✨", "max": 50 }
+      },
+      "situationLabel": "魔法世界の状況",
+      "inventoryLabel": "所持品",
+      "keywords": ["剣", "魔法", "ドラゴン", "城", "森", "冒険者ギルド"],
+      "imageStyleSuffix": "medieval fantasy landscape with castles and magic",
+      "sampleSettings": [
+        "古代竜が眠る忘れられた王国",
+        "魔法学院の地下に封印された迷宮",
+        "妖精と人間が共存する森の都市"
+      ]
+    },
+    "scifi": {
+      "label": "SF・宇宙",
+      "stats": {
+        "hp": { "label": "シールド", "icon": "🛡️", "max": 100 },
+        "energy": { "label": "エネルギー", "icon": "⚡", "max": 80 }
+      },
+      "situationLabel": "宇宙ステータス",
+      "inventoryLabel": "装備・デバイス",
+      "keywords": ["宇宙船", "AI", "惑星", "ワープ", "エイリアン"],
+      "imageStyleSuffix": "futuristic sci-fi space station and alien worlds",
+      "sampleSettings": [
+        "放棄された宇宙ステーションの探索",
+        "AIが支配する惑星からの脱出",
+        "銀河連邦のスパイとなり、秘密作戦を遂行する"
+      ]
+    },
+    "horror": {
+      "label": "ホラー",
+      "stats": {
+        "hp": { "label": "生命力", "icon": "💀", "max": 100 },
+        "sanity": { "label": "正気度", "icon": "🧠", "max": 100 }
+      },
+      "situationLabel": "恐怖レベル",
+      "inventoryLabel": "手持ちのアイテム",
+      "keywords": ["幽霊", "廃墟", "呪い", "闇", "悲鳴"],
+      "imageStyleSuffix": "dark horror atmosphere with eerie abandoned places",
+      "sampleSettings": [
+        "深夜の廃病院で目を覚ます",
+        "呪われた村からの脱出",
+        "鏡の中に潜むもう一人の自分"
+      ]
+    },
+    "modern": {
+      "label": "現代・日常",
+      "stats": {
+        "hp": { "label": "体力", "icon": "💪", "max": 100 },
+        "reputation": { "label": "評判", "icon": "⭐", "max": 100 }
+      },
+      "situationLabel": "現在の状況",
+      "inventoryLabel": "持ち物",
+      "keywords": ["街", "学校", "仕事", "友人", "スマホ"],
+      "imageStyleSuffix": "modern Japanese city everyday life",
+      "sampleSettings": [
+        "転校初日、謎のメモがロッカーに入っていた",
+        "深夜のコンビニバイトで奇妙な常連客に出会う",
+        "突然届いた祖父の遺産と秘密の地図"
+      ]
+    },
+    "postapocalypse": {
+      "label": "終末世界",
+      "stats": {
+        "hp": { "label": "体力", "icon": "❤️", "max": 100 },
+        "hunger": { "label": "空腹度", "icon": "🍖", "max": 100 }
+      },
+      "situationLabel": "サバイバル状況",
+      "inventoryLabel": "サバイバル装備",
+      "keywords": ["荒廃", "サバイバル", "変異体", "シェルター", "物資"],
+      "imageStyleSuffix": "post-apocalyptic wasteland ruins and survival",
+      "sampleSettings": [
+        "核戦争後の東京を一人で歩き始める",
+        "地下シェルターの食料が底をつく",
+        "荒野に現れた謎の商人キャラバン"
+      ]
+    }
+  },
+  "globalImageStyle": "Soft colored pencil and crayon drawing, calm hand-drawn sketch, storybook aesthetic",
+  "audioPromptSuffix": "ambient atmospheric soundtrack"
+}
