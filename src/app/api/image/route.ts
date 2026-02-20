@@ -17,8 +17,8 @@ export async function POST(req: NextRequest) {
         const fullPrompt = prefix + prompt;
 
         // Using official @huggingface/inference client
-        const response = await (client as any).text_to_image({
-            model: "stabilityai/stable-diffusion-xl-base-1.0",
+        const response = await client.textToImage({
+            model: "black-forest-labs/FLUX.1-dev", // Changed to a model that works with Inference API
             inputs: fullPrompt,
             parameters: {
                 num_inference_steps: 30,
