@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { HfInference } from "@huggingface/inference";
+import { InferenceClient } from "@huggingface/inference";
+import image from "next/image";
 
 const HUGGING_FACE_ACCESS_TOKEN = process.env.HUGGING_FACE_ACCESS_TOKEN || "";
-const client = new HfInference(HUGGING_FACE_ACCESS_TOKEN);
+const client = new InferenceClient(HUGGING_FACE_ACCESS_TOKEN);
 
 export async function POST(req: NextRequest) {
     try {
@@ -18,11 +19,11 @@ export async function POST(req: NextRequest) {
 
         // Using official @huggingface/inference client
         const response = await client.textToImage({
-            provider: "hf-inference",
-            model: "stabilityai/stable-diffusion-xl-base-1.0",
+            provider: "replicate",
+            model: "ByteDance/SDXL-Lightning",
             inputs: fullPrompt,
             parameters: {
-                num_inference_steps: 30,
+                num_inference_steps: 5,
             },
         });
 
