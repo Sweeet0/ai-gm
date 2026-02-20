@@ -126,7 +126,7 @@ export default function GameInterface({
     const response = gameState.currentResponse;
 
     return (
-        <div className="h-screen flex flex-col p-3 sm:p-6 overflow-hidden bg-parchment">
+        <div className="fixed-viewport flex flex-col p-3 sm:p-6 bg-parchment">
             {/* Top bar */}
             <header className="flex-none max-w-6xl w-full mx-auto flex items-center justify-between mb-4">
                 <h1 className="title-handwritten text-xl sm:text-2xl">

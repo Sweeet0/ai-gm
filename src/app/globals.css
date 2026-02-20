@@ -31,27 +31,34 @@
 }
 
 /* ── Global Resets ── */
-*,
 html,
 body,
 #root,
 #__next {
-  height: 100vh;
+  min-height: 100vh;
   width: 100vw;
-  overflow: hidden;
   margin: 0;
   padding: 0;
 }
 
+/* Base body style (allows scroll for initial setup) */
 body {
   font-family: var(--font-body);
   background: var(--color-parchment);
   color: var(--color-ink);
+  overflow-x: hidden;
+  /* Prevent horizontal scroll */
   background-image:
     radial-gradient(circle at 10% 10%, rgba(230, 126, 80, 0.05) 0%, transparent 60%),
     radial-gradient(circle at 90% 90%, rgba(109, 97, 84, 0.08) 0%, transparent 60%),
     url("https://www.transparenttextures.com/patterns/dark-matter.png");
   /* Subtle texture */
+}
+
+/* Fixed-height class for Game UI */
+.fixed-viewport {
+  height: 100vh;
+  overflow: hidden;
 }
 
 /* ── Typewriter Effect ── */
