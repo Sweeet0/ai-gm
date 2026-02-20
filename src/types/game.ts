@@ -11,6 +11,7 @@ export interface GeminiResponse {
     scenario_text: string;
     status: GameStatus;
     choices: [string, string, string, string];
+    is_question: boolean;
     image_prompt: string;
     audio_prompt: string;
     modelName?: string;

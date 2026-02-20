@@ -207,10 +207,24 @@ export default function GameInterface({
                         <span style={{ color: "var(--color-ink-light)" }}>{worldSetting}</span>
                     </div>
 
-                    <div className="card-sketch p-5 sm:p-6 flex-1 flex flex-col animate-fade-in-up min-h-0" style={{ animationDelay: "0.1s" }}>
-                        <h3 className="title-handwritten text-lg mb-3" style={{ color: "var(--color-accent)" }}>
-                            📜 物語
-                        </h3>
+                    <div
+                        className="card-sketch p-5 sm:p-6 flex-1 flex flex-col animate-fade-in-up min-h-0 transition-colors duration-500"
+                        style={{
+                            animationDelay: "0.1s",
+                            backgroundColor: response?.is_question ? "var(--color-question-bg)" : "var(--color-canvas-bg)",
+                            borderColor: response?.is_question ? "var(--color-question-border)" : "var(--border-sketch)"
+                        }}
+                    >
+                        <div className="flex items-center justify-between mb-3">
+                            <h3 className="title-handwritten text-lg" style={{ color: "var(--color-accent)" }}>
+                                📜 物語
+                            </h3>
+                            {response?.is_question && (
+                                <span className="badge-sketch text-xs bg-accent/10 border-accent/40 text-accent animate-pulse-gentle">
+                                    💡 質問回答モード
+                                </span>
+                            )}
+                        </div>
 
                         <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar relative">
                             <div className="narrative-content-wrapper min-h-full">

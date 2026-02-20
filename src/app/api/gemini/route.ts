@@ -38,6 +38,7 @@ const SYSTEM_PROMPT = `あなたは対話型ゲームマスター（GM）です�
     "situation": "現在の状況の簡潔な説明"
   },
   "choices": ["選択肢1", "選択肢2", "選択肢3", "選択肢4"],
+  "is_question": プレイヤーが質問をした場合はtrue、物語を進める行動をした場合はfalse,
   "image_prompt": "(English) Detailed image generation prompt for the current scene. Always include 'soft colored pencil and crayon drawing, calm hand-drawn sketch, storybook aesthetic' in the style.",
   "audio_prompt": "(English) Short ambient audio description for the current scene."
 }`;
