@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import http from "http";
 
 export async function POST(req: NextRequest) {
     try {
@@ -14,12 +13,10 @@ export async function POST(req: NextRequest) {
         const content = visualSummary || prompt;
         const fullPrompt = `${content}, ${prefix}`;
 
-        // Local Forge API Endpoint configuration
-        const host = "127.0.0.1";
-        const port = 7860;
-        const path = "/sdapi/v1/txt2img";
+        // Local Forge API Endpoint (Fixed IP to bypass DNS issues)
+        const url = "http://192.168.0.12:7860/sdapi/v1/txt2img";
 
-        // Request Body for Forge/Automatic1111 API
+        // Request Body for Forge/Automatic1111 API - Optimized for BluePencil-XL
         const payload = {
             prompt: fullPrompt,
             negative_prompt: "photorealistic, realistic, 3d render, low quality, bad anatomy, blurry, text, watermark, (worst quality:1.4), (low quality:1.4)",
@@ -30,56 +27,33 @@ export async function POST(req: NextRequest) {
             sampler_name: "Euler a",
         };
 
-        const postData = JSON.stringify(payload);
+        console.log("Fetching from:", url);
 
-        console.log(`Fetching from: http://${host}:${port}${path}`);
-
-        // Using native http module to bypass fetch's ConnectTimeoutError (10s limit)
-        const responseData: any = await new Promise((resolve, reject) => {
-            const options = {
-                hostname: host,
-                port: port,
-                path: path,
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Content-Length': Buffer.byteLength(postData),
-                }
-            };
-
-            const req = http.request(options, (res) => {
-                let data = '';
-                res.setEncoding('utf8');
-                res.on('data', (chunk) => {
-                    data += chunk;
-                });
-                res.on('end', () => {
-                    if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-                        try {
-                            resolve(JSON.parse(data));
-                        } catch (e) {
-                            reject(new Error("Failed to parse Forge API response"));
-                        }
-                    } else {
-                        reject(new Error(`Forge API returned status ${res.statusCode}: ${data.substring(0, 100)}`));
-                    }
-                });
-            });
-
-            req.on('error', (e) => {
-                reject(e);
-            });
-
-            // Set explicit connection and response timeouts
-            req.setTimeout(60000, () => {
-                req.destroy(new Error("Request timed out after 60s"));
-            });
-
-            req.write(postData);
-            req.end();
+        // Using specialized fetch with duplex and explicit Host header
+        const res = await fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Host": "127.0.0.1:7860", // Explicit Host header as requested
+            },
+            body: JSON.stringify(payload),
+            cache: "no-store",
+            // @ts-ignore - duplex is required in some Node versions for POST with body
+            duplex: 'half',
+            signal: (AbortSignal as any).timeout(60000), // 60 seconds timeout
         });
 
-        const base64Image = responseData.images?.[0];
+        if (!res.ok) {
+            const errorText = await res.text();
+            console.error("Forge API Error:", errorText);
+            return NextResponse.json(
+                { error: `Forge API returned status ${res.status}` },
+                { status: res.status }
+            );
+        }
+
+        const data = await res.json();
+        const base64Image = data.images?.[0];
 
         if (!base64Image) {
             return NextResponse.json({ error: "No image received from Forge API" }, { status: 500 });
