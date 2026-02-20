@@ -1,8 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { InferenceClient } from "@huggingface/inference";
-
-const HUGGING_FACE_ACCESS_TOKEN = process.env.HUGGING_FACE_ACCESS_TOKEN || "";
-const client = new InferenceClient(HUGGING_FACE_ACCESS_TOKEN);
 
 export async function POST(req: NextRequest) {
     try {
@@ -17,31 +13,60 @@ export async function POST(req: NextRequest) {
         const content = visualSummary || prompt;
         const fullPrompt = `${content}, ${prefix}`;
 
-        // Using official @huggingface/inference client
-        const response = await client.textToImage({
-            // provider: "hf-inference",
-            // model: "stabilityai/stable-diffusion-xl-base-1.0",
-            model: "runwayml/stable-diffusion-v1-5",
-            inputs: fullPrompt,
-            parameters: {
-                guidance_scale: 8.5,
-                num_inference_steps: 30,
-                negative_prompt: 'photorealistic, realistic, 3d render, low quality, bad anatomy, blurry, text, watermark',
-                scheduler: "Euler a"
+        // Local Forge API Endpoint
+        const url = "http://127.0.0.1:7860/sdapi/v1/txt2img";
+
+        // Request Body for Forge/Automatic1111 API
+        const payload = {
+            prompt: fullPrompt,
+            negative_prompt: "photorealistic, realistic, 3d render, low quality, bad anatomy, blurry, text, watermark, (worst quality:1.4), (low quality:1.4)",
+            steps: 30,
+            cfg_scale: 8.5,
+            width: 896,
+            height: 1152,
+            sampler_name: "Euler a",
+            // You can add more Forge-specific settings here
+        };
+
+        const res = await fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
             },
+            body: JSON.stringify(payload),
         });
 
-        // Convert the response to a proper response
-        return new NextResponse(response, {
+        if (!res.ok) {
+            const errorText = await res.text();
+            console.error("Forge API Error:", errorText);
+            return NextResponse.json(
+                { error: `Forge API returned error ${res.status}` },
+                { status: res.status }
+            );
+        }
+
+        const data = await res.json();
+        // Forge API returns images as an array of base64 strings in the 'images' field
+        const base64Image = data.images?.[0];
+
+        if (!base64Image) {
+            return NextResponse.json({ error: "No image received from Forge API" }, { status: 500 });
+        }
+
+        // Convert base64 to Buffer and return as Image/PNG Response
+        const buffer = Buffer.from(base64Image, 'base64');
+        const blob = new Blob([buffer], { type: 'image/png' });
+
+        return new NextResponse(blob, {
             headers: {
                 'Content-Type': 'image/png',
             },
         });
 
     } catch (error) {
-        console.error("Hugging Face API Error:", error);
+        console.error("Local Image Generation Error:", error);
         return NextResponse.json(
-            { error: "Failed to generate image" },
+            { error: "Failed to connect to Local Forge API" },
             { status: 500 }
         );
     }
