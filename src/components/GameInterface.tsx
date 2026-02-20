@@ -56,6 +56,7 @@ export default function GameInterface({
     });
 
     const [typingComplete, setTypingComplete] = useState(false);
+    const [displayedImageUrl, setDisplayedImageUrl] = useState<string | null>(null);
     const [showHistory, setShowHistory] = useState(false);
     const [pendingAction, setPendingAction] = useState<string | null>(null);
     const initialized = useRef(false);
@@ -228,6 +229,13 @@ export default function GameInterface({
         sendAction(text);
     };
 
+    // Track current image URL to keep it visible while next is loading
+    useEffect(() => {
+        if (gameState.currentResponse?.imageUrl) {
+            setDisplayedImageUrl(gameState.currentResponse.imageUrl);
+        }
+    }, [gameState.currentResponse?.imageUrl]);
+
     const [bgmEnabled, setBgmEnabled] = useState(true);
 
     const response = gameState.currentResponse;
@@ -304,10 +312,11 @@ export default function GameInterface({
                                 borderRadius: "4px",
                             }}
                         >
-                            {response?.imageUrl ? (
+                            {displayedImageUrl ? (
                                 <img
-                                    src={response.imageUrl}
-                                    alt={response.imagePrompt}
+                                    src={displayedImageUrl}
+                                    alt={response?.imagePrompt || "Story Scene"}
+                                    key={displayedImageUrl} // Trigger re-animation on new image
                                     className="w-full h-full object-cover animate-fade-in"
                                 />
                             ) : (
