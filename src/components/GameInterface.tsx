@@ -109,6 +109,10 @@ export default function GameInterface({
     }, [sendAction, gameState.history.length]);
 
 
+    const handleTypewriterComplete = useCallback(() => {
+        setTypingComplete(true);
+    }, []);
+
     const handleChoice = (choice: string) => {
         sendAction(choice);
     };
@@ -117,17 +121,26 @@ export default function GameInterface({
         sendAction(text);
     };
 
+    const [bgmEnabled, setBgmEnabled] = useState(true);
+
     const response = gameState.currentResponse;
 
     return (
-        <div className="h-screen flex flex-col p-3 sm:p-6 overflow-hidden">
+        <div className="h-screen flex flex-col p-3 sm:p-6 overflow-hidden bg-parchment">
             {/* Top bar */}
             <header className="flex-none max-w-6xl w-full mx-auto flex items-center justify-between mb-4">
                 <h1 className="title-handwritten text-xl sm:text-2xl">
                     📖 GEM Engine
                 </h1>
-                <div className="flex items-center gap-3">
-                    <span className="badge-sketch text-xs">
+                <div className="flex items-center gap-2 sm:gap-3">
+                    <button
+                        className={`btn-sketch p-2 rounded-full flex items-center justify-center transition-all ${bgmEnabled ? 'text-accent' : 'opacity-40'}`}
+                        onClick={() => setBgmEnabled(!bgmEnabled)}
+                        title={bgmEnabled ? "BGM ON" : "BGM OFF"}
+                    >
+                        {bgmEnabled ? "🎵" : "🔇"}
+                    </button>
+                    <span className="badge-sketch text-xs hidden sm:inline-flex">
                         🎭 {genreConfig.label}
                     </span>
                     <span className="badge-sketch text-xs">
@@ -203,15 +216,7 @@ export default function GameInterface({
                         </div>
                     )}
 
-                    {/* Audio prompt badge */}
-                    {response?.audio_prompt && (
-                        <div
-                            className="badge-sketch text-xs animate-fade-in-up"
-                            style={{ animationDelay: "0.15s" }}
-                        >
-                            🎵 {response.audio_prompt.slice(0, 60)}...
-                        </div>
-                    )}
+                    {/* Audio prompt badge (Removed from here, moved to header) */}
                 </div>
 
                 {/* Right column: Narrative + Actions */}
@@ -258,11 +263,17 @@ export default function GameInterface({
                                     <TypewriterText
                                         text={response.scenario_text}
                                         speed={25}
-                                        onComplete={() => setTypingComplete(true)}
+                                        onComplete={handleTypewriterComplete}
                                     />
                                     {gameState.isLoading && (
                                         <div className="mt-4 flex items-center gap-2">
                                             <span className="animate-pulse-gentle text-lg">✍️</span>
+                                        </div>
+                                    )}
+                                    {bgmEnabled && response.audio_prompt && (
+                                        <div className="mt-4 text-xs italic opacity-40 flex items-center gap-2">
+                                            <span>🎵</span>
+                                            <span>{response.audio_prompt}</span>
                                         </div>
                                     )}
                                 </div>
