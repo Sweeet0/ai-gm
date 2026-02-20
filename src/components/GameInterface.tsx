@@ -143,12 +143,12 @@ export default function GameInterface({
 
     const fetchMultimedia = useCallback(async (data: GeminiResponse) => {
         // Fetch Image
-        if (data.image_prompt) {
+        if (data.imagePrompt) {
             try {
-                const imgRes = await fetch("/api/imagen", {
+                const imgRes = await fetch("/api/image", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ prompt: data.image_prompt }),
+                    body: JSON.stringify({ prompt: data.imagePrompt }),
                 });
                 if (imgRes.ok) {
                     const imgData = await imgRes.json();
@@ -305,18 +305,18 @@ export default function GameInterface({
                             {response?.imageUrl ? (
                                 <img
                                     src={response.imageUrl}
-                                    alt={response.image_prompt}
+                                    alt={response.imagePrompt}
                                     className="w-full h-full object-cover animate-fade-in"
                                 />
                             ) : (
                                 <div className="text-center p-4">
                                     <span className="text-4xl mb-2 block animate-wobble">
-                                        {response?.image_prompt ? "🎨" : "🖼️"}
+                                        {response?.imagePrompt ? "🎨" : "🖼️"}
                                     </span>
                                     <p className="text-xs italic" style={{ color: "var(--color-pencil-soft)" }}>
-                                        {response?.image_prompt ? "AIが情景を描いています..." : "冒険の始まりを待っています..."}
+                                        {response?.imagePrompt ? "AIが情景を描いています..." : "冒メントの始まりを待っています..."}
                                     </p>
-                                    {response?.image_prompt && (
+                                    {response?.imagePrompt && (
                                         <div className="mt-3 flex justify-center">
                                             <div className="flex gap-1">
                                                 <div className="w-1.5 h-1.5 rounded-full bg-accent animate-bounce" style={{ animationDelay: "0s" }}></div>

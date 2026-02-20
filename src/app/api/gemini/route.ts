@@ -51,9 +51,9 @@ const SYSTEM_PROMPT = `あなたは対話型ゲームマスター（GM）です�
   "choices": ["選択肢1", "選択肢2", "選択肢3", "選択肢4"],
   "is_question": プレイヤーが質問をした場合はtrue、
   "is_ending": 物語が完結（クリア、ゲームオーバー）した場合はtrue、
-  "image_prompt": "(English) Detailed image generation prompt for the current scene. Always include 'soft colored pencil and crayon drawing, calm hand-drawn sketch, storybook aesthetic' in the style.",
+  "imagePrompt": "(English) Detailed image generation prompt for the current scene.",
   "audio_prompt": "(English) Short ambient audio description."
-}`;
+} `;
 
 async function callModel(model: string, userPrompt: string, seed: number) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${NEXT_PUBLIC_GEMINI_API_KEY}`;

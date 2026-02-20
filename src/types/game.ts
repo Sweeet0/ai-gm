@@ -13,7 +13,7 @@ export interface GeminiResponse {
     choices: [string, string, string, string];
     is_question: boolean;
     is_ending?: boolean;
-    image_prompt: string;
+    imagePrompt: string;
     imageUrl?: string;
     audio_prompt: string;
     audioUrl?: string;
