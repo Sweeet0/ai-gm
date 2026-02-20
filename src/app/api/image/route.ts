@@ -18,7 +18,10 @@ export async function POST(req: NextRequest) {
 
         // Using official @huggingface/inference client
         const response = await client.textToImage({
+            provider: "hf-inference",
             model: "black-forest-labs/FLUX.1-dev", // Changed to a model that works with Inference API
+            // model: "ByteDance/SDXL-Lightning",
+            // model: "stabilityai/stable-diffusion-xl-base-1.0",
             inputs: fullPrompt,
             parameters: {
                 num_inference_steps: 30,
