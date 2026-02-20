@@ -46,6 +46,8 @@ export default function GameInterface({
 
     const sendAction = useCallback(
         async (action: string) => {
+            console.log(`[GameInterface] sendAction called with action: "${action}", count: ${gameState.turnCount}`);
+
             setGameState((prev) => ({
                 ...prev,
                 isLoading: true,
@@ -73,6 +75,7 @@ export default function GameInterface({
                 }
 
                 const data: GeminiResponse = await res.json();
+                console.log("[GameInterface] API response received:", data.scenario_text.slice(0, 50) + "...");
 
                 setGameState((prev) => ({
                     ...prev,
@@ -98,11 +101,12 @@ export default function GameInterface({
     );
 
     useEffect(() => {
-        if (!initialized.current) {
+        if (!initialized.current && gameState.history.length === 0) {
             initialized.current = true;
+            console.log("[GameInterface] Effect: Calling initial sendAction", { historyLength: gameState.history.length });
             sendAction("");
         }
-    }, [sendAction]);
+    }, [sendAction, gameState.history.length]);
 
 
     const handleChoice = (choice: string) => {
@@ -116,9 +120,9 @@ export default function GameInterface({
     const response = gameState.currentResponse;
 
     return (
-        <div className="min-h-screen p-3 sm:p-6">
+        <div className="h-screen flex flex-col p-3 sm:p-6 overflow-hidden">
             {/* Top bar */}
-            <header className="max-w-6xl mx-auto flex items-center justify-between mb-4">
+            <header className="flex-none max-w-6xl w-full mx-auto flex items-center justify-between mb-4">
                 <h1 className="title-handwritten text-xl sm:text-2xl">
                     📖 GEM Engine
                 </h1>
@@ -151,9 +155,9 @@ export default function GameInterface({
             )}
 
             {/* Main grid */}
-            <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="flex-1 max-w-6xl w-full mx-auto grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0">
                 {/* Left column: Visual + Stats */}
-                <div className="lg:col-span-1 flex flex-col gap-4">
+                <div className="lg:col-span-1 flex flex-col gap-4 overflow-hidden">
                     {/* Image canvas */}
                     <div className="frame-sketch animate-fade-in-up">
                         <div
@@ -211,7 +215,7 @@ export default function GameInterface({
                 </div>
 
                 {/* Right column: Narrative + Actions */}
-                <div className="lg:col-span-2 flex flex-col gap-4">
+                <div className="lg:col-span-2 flex flex-col gap-4 overflow-hidden">
                     {/* World setting banner */}
                     <div
                         className="card-sketch p-3 text-sm animate-fade-in-up"
@@ -225,7 +229,7 @@ export default function GameInterface({
 
                     {/* Narrative log */}
                     <div
-                        className="card-sketch p-5 sm:p-6 flex-1 min-h-[300px] lg:h-[500px] flex flex-col animate-fade-in-up"
+                        className="card-sketch p-5 sm:p-6 flex-1 flex flex-col animate-fade-in-up min-h-0"
                         style={{ animationDelay: "0.1s" }}
                     >
                         <h3
@@ -275,7 +279,7 @@ export default function GameInterface({
 
                     {/* Action bar */}
                     {response && (
-                        <div className="animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
+                        <div className="flex-none animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
                             <ActionBar
                                 choices={response.choices}
                                 onChoiceSelect={handleChoice}
