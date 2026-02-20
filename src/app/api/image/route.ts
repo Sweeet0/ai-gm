@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
             },
             body: JSON.stringify(payload),
             cache: "no-store",
+            signal: (AbortSignal as any).timeout(60000), // 60 seconds timeout
         });
 
         if (!res.ok) {
