@@ -12,6 +12,7 @@ export interface GeminiResponse {
     status: GameStatus;
     choices: [string, string, string, string];
     is_question: boolean;
+    is_ending?: boolean;
     image_prompt: string;
     audio_prompt: string;
     modelName?: string;
@@ -52,4 +53,5 @@ export interface GameState {
     turnCount: number;
     isLoading: boolean;
     error: string | null;
+    isDeepDiveMode?: boolean;
 }

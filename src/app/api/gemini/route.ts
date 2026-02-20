@@ -27,20 +27,32 @@ const SYSTEM_PROMPT = `あなたは対話型ゲームマスター（GM）です�
 - 物語の開始時（「これまでの経緯」が空で、アクションが空または「ゲームスタート」などの場合）、プレイヤーを物語の世界へ引き込む魅力的なプロローグを描写してください。
 - プロローグは、プレイヤーが置かれている状況、周囲の環境、初期の目的を明確に示すようにしてください。
 
+## 特別な指示：エンディング（クリア / ゲームオーバー）
+- 物語が完結した際（目的達成、または絶望的な状況での敗北など）、必ずJSONの "is_ending" を true に設定してください。
+- 完結した際の物語描写は、これまでの旅を締めくくるにふさわしい劇的で感動的、あるいは衝撃的な内容にしてください。
+
+## 特別な指示：裏話モード（DEEP DIVE）
+- プレイヤーが「裏話を聞く」を選択、または「舞台設定」「他の選択肢の結果」「逆提案（没設定）」などについて聞いてきた場合、ゲームマスターの立場を離れ、「物語の製作者・解説者」として対話してください。
+- **舞台設定**: 物語の全体像や、隠された背景設定、AIが想定していたロアなどを詳しく解説してください。
+- **他の選択肢の結果**: 過去の分岐を振り返るリクエストがあった場合、最初から1つずつ「この時〇〇を選んでいたらこうなっていた」という結果や影響を解説してください。解説の最後には必ず「次の分岐へ」「裏話メニューに戻る」を選択肢として含めてください。
+- **逆提案（没設定）**: 「実はあのキャラにはこんな没設定が…」といった、生成過程で使われなかった面白いアイデアを熱っぽく語ってください。解説の最後には必ず「聞く」「別の提案」「裏話メニューに戻る」を選択肢として含めてください。
+- 裏話モードでは物語は進めず、出力フォーマットは通常と同じJSONを維持してください。
+
 ## 出力フォーマット
 必ず以下のJSON形式で返答してください。JSON以外のテキストは一切含めないでください。
 
 {
-  "scenario_text": "(日本語) 臨場感のある情景描写とストーリー展開",
+  "scenario_text": "(日本語) 臨場感のある情景描写とストーリー展開、または解説文",
   "status": {
     "hp": 数値（0-100）,
     "inventory": ["所持品1", "所持品2"],
     "situation": "現在の状況の簡潔な説明"
   },
   "choices": ["選択肢1", "選択肢2", "選択肢3", "選択肢4"],
-  "is_question": プレイヤーが質問をした場合はtrue、物語を進める行動をした場合はfalse,
+  "is_question": プレイヤーが質問をした場合はtrue、
+  "is_ending": 物語が完結（クリア、ゲームオーバー）した場合はtrue、
   "image_prompt": "(English) Detailed image generation prompt for the current scene. Always include 'soft colored pencil and crayon drawing, calm hand-drawn sketch, storybook aesthetic' in the style.",
-  "audio_prompt": "(English) Short ambient audio description for the current scene."
+  "audio_prompt": "(English) Short ambient audio description."
 }`;
 
 async function callModel(model: string, userPrompt: string, seed: number) {
@@ -82,11 +94,10 @@ ${historyPrompt}
 
 PLAYER ACTION: ${action || "ゲームスタート"}
 
-上記を踏まえ、物語の次の展開を生成してください。必ずJSON形式で出力してください。
+上記を踏まえ、物語の次の展開（または終了、または裏話の回答）を生成してください。必ずJSON形式で出力してください。
 `;
 
         const allModels = [...MODEL_HIERARCHY, ...BACKUP_HIERARCHY];
-        let lastError = null;
 
         for (const model of allModels) {
             console.log(`Trying model: ${model}`);
@@ -112,12 +123,9 @@ PLAYER ACTION: ${action || "ゲームスタート"}
                 continue;
             }
 
-            // Robust JSON extraction
             let jsonStr = text.trim();
             const jsonMatch = text.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                jsonStr = jsonMatch[0];
-            }
+            if (jsonMatch) jsonStr = jsonMatch[0];
 
             try {
                 const data = JSON.parse(jsonStr);

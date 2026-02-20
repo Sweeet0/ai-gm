@@ -121,6 +121,30 @@ export default function GameInterface({
         [worldSetting, genreKey, gameState.history, gameState.seed, gameState.turnCount]
     );
 
+    const handleRestartGame = useCallback(() => {
+        setGameState((prev) => ({
+            ...prev,
+            history: [],
+            currentResponse: null,
+            turnCount: 0,
+            isDeepDiveMode: false,
+            isLoading: false,
+            error: null,
+        }));
+        setTypingComplete(false);
+        initialized.current = false;
+        // Trigger initialization again
+    }, []);
+
+    const handleEnterDeepDive = useCallback(() => {
+        setGameState(prev => ({ ...prev, isDeepDiveMode: true }));
+        sendAction("裏話を聞く");
+    }, [sendAction]);
+
+    const handleExitDeepDive = useCallback(() => {
+        setGameState(prev => ({ ...prev, isDeepDiveMode: false }));
+    }, []);
+
     useEffect(() => {
         if (!initialized.current) {
             initialized.current = true;
@@ -128,13 +152,10 @@ export default function GameInterface({
             if (gameState.history.length === 0) {
                 sendAction("");
             } else {
-                // If resuming, we've already done typing once, but for the resume 
-                // we might want to show the current text. 
-                // We set typingComplete to true so choice buttons appear.
                 setTypingComplete(true);
             }
         }
-    }, [sendAction, gameState.history.length]);
+    }, [sendAction, gameState.history.length, gameState.currentResponse]); // Added currentResponse to trigger correctly on reset
 
     const handleTypewriterComplete = useCallback(() => {
         setTypingComplete(true);
@@ -254,7 +275,17 @@ export default function GameInterface({
                             <h3 className="title-handwritten text-lg" style={{ color: "var(--color-accent)" }}>
                                 📜 物語
                             </h3>
-                            {response?.is_question && (
+                            {response?.is_ending && (
+                                <span className="badge-sketch text-xs bg-amber-500/20 border-amber-500/50 text-amber-600 animate-bounce-gentle">
+                                    🏆 物語の結末
+                                </span>
+                            )}
+                            {gameState.isDeepDiveMode && (
+                                <span className="badge-sketch text-xs bg-purple-500/20 border-purple-500/50 text-purple-600 animate-pulse-gentle">
+                                    🕵️ 裏話モード
+                                </span>
+                            )}
+                            {response?.is_question && !response.is_ending && !gameState.isDeepDiveMode && (
                                 <span className="badge-sketch text-xs bg-accent/10 border-accent/40 text-accent animate-pulse-gentle">
                                     💡 質問回答モード
                                 </span>
@@ -324,12 +355,70 @@ export default function GameInterface({
 
                     {response && (
                         <div className="flex-none animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
-                            <ActionBar
-                                choices={response.choices}
-                                onChoiceSelect={handleChoice}
-                                onFreeInput={handleFreeInput}
-                                disabled={gameState.isLoading || !typingComplete}
-                            />
+                            {response.is_ending && !gameState.isDeepDiveMode ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <button
+                                        onClick={handleEnterDeepDive}
+                                        disabled={gameState.isLoading || !typingComplete}
+                                        className="btn-action-sketch min-h-[50px] text-sm animate-bounce-gentle"
+                                        style={{ "--color-btn": "#c06040" } as any}
+                                    >
+                                        A. 裏話を聞く
+                                    </button>
+                                    <button
+                                        onClick={handleRestartGame}
+                                        disabled={gameState.isLoading || !typingComplete}
+                                        className="btn-action-sketch min-h-[50px] text-sm"
+                                    >
+                                        B. 最初からやり直す
+                                    </button>
+                                    <button
+                                        onClick={onRestart}
+                                        disabled={gameState.isLoading || !typingComplete}
+                                        className="btn-action-sketch min-h-[50px] text-sm"
+                                    >
+                                        C. 次の話へ
+                                    </button>
+                                </div>
+                            ) : gameState.isDeepDiveMode ? (
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        onClick={() => handleChoice("舞台設定について教えてください")}
+                                        disabled={gameState.isLoading || !typingComplete}
+                                        className="btn-action-sketch min-h-[44px] text-sm"
+                                    >
+                                        🔍 舞台設定
+                                    </button>
+                                    <button
+                                        onClick={() => handleChoice("他の選択肢の結果を教えてください")}
+                                        disabled={gameState.isLoading || !typingComplete}
+                                        className="btn-action-sketch min-h-[44px] text-sm"
+                                    >
+                                        🔮 他の分岐
+                                    </button>
+                                    <button
+                                        onClick={() => handleChoice("没設定や逆提案はありますか？")}
+                                        disabled={gameState.isLoading || !typingComplete}
+                                        className="btn-action-sketch min-h-[44px] text-sm"
+                                    >
+                                        💡 没設定
+                                    </button>
+                                    <button
+                                        onClick={handleExitDeepDive}
+                                        disabled={gameState.isLoading || !typingComplete}
+                                        className="btn-action-sketch min-h-[44px] text-sm border-accent/20 text-accent"
+                                    >
+                                        ⬅️ 裏話を終わる
+                                    </button>
+                                </div>
+                            ) : (
+                                <ActionBar
+                                    choices={response.choices}
+                                    onChoiceSelect={handleChoice}
+                                    onFreeInput={handleFreeInput}
+                                    disabled={gameState.isLoading || !typingComplete}
+                                />
+                            )}
                         </div>
                     )}
                 </div>
