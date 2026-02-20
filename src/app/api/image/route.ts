@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
         const fullPrompt = `${content}, ${prefix}`;
 
         // Local Forge API Endpoint
-        const url = "http://127.0.0.1:7860/sdapi/v1/txt2img";
+        const url = "http://localhost:7860/sdapi/v1/txt2img";
 
         // Request Body for Forge/Automatic1111 API
         const payload = {
@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify(payload),
+            cache: "no-store",
         });
 
         if (!res.ok) {
@@ -63,8 +64,8 @@ export async function POST(req: NextRequest) {
             },
         });
 
-    } catch (error) {
-        console.error("Local Image Generation Error:", error);
+    } catch (error: any) {
+        console.error("Local Image Generation Error:", error, error.cause);
         return NextResponse.json(
             { error: "Failed to connect to Local Forge API" },
             { status: 500 }
