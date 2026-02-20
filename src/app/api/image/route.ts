@@ -19,12 +19,13 @@ export async function POST(req: NextRequest) {
         // Using official @huggingface/inference client
         const response = await client.textToImage({
             provider: "hf-inference",
-            model: "ByteDance/SDXL-Lightning",
-            //model: "stabilityai/stable-diffusion-xl-base-1.0",
+            model: "stabilityai/stable-diffusion-xl-base-1.0",
             inputs: fullPrompt,
             parameters: {
+                guidance_scale: 8.5,
                 num_inference_steps: 30,
                 negative_prompt: 'photorealistic, realistic, 3d render, low quality, bad anatomy, blurry, text, watermark',
+                scheduler: "Euler a"
             },
         });
 
