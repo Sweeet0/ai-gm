@@ -67,7 +67,8 @@ export default function GameInterface({
                 });
 
                 if (!res.ok) {
-                    throw new Error(`API error: ${res.status}`);
+                    const errorData = await res.json().catch(() => ({}));
+                    throw new Error(errorData.error || `API error: ${res.status}`);
                 }
 
                 const data: GeminiResponse = await res.json();
@@ -88,7 +89,7 @@ export default function GameInterface({
                 setGameState((prev) => ({
                     ...prev,
                     isLoading: false,
-                    error: "APIに接続できませんでした。もう一度試してください。",
+                    error: err instanceof Error ? err.message : "APIに接続できませんでした。もう一度試してください。",
                 }));
             }
         },
