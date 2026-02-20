@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type {
     GameState,
     GeminiResponse,
@@ -19,26 +19,8 @@ interface Props {
     onRestart: () => void;
 }
 
-// Mock data for initial display
-const MOCK_RESPONSE: GeminiResponse = {
-    scenario_text:
-        "あなたは薄暗い森の中で目を覚ました。\n\n頭上には古木の枝が絡み合い、わずかな月明かりが地面に斑模様を描いている。遠くで梟の鳴き声が聞こえ、湿った土の匂いが鼻をくすぐる。\n\n足元には古びた革の鞄が転がっており、中には錆びたランタンと一枚の地図が入っていた。地図には赤い印で「ここから北へ」と書かれている。\n\n北の方角から微かに光が見える。南には川のせせらぎが聞こえる。",
-    status: {
-        hp: 85,
-        inventory: ["錆びたランタン", "古い地図", "革の鞄"],
-        situation: "夜の森の中。北に微かな光、南に川の音。東の茂みが不自然に揺れている。",
-    },
-    choices: [
-        "北の光に向かって慎重に進む",
-        "川の方へ向かい、水を確保する",
-        "ランタンに火を付けて周囲を確認する",
-        "大声で「誰かいますかー！」と叫ぶ",
-    ],
-    image_prompt:
-        "A dark mysterious forest at night, moonlight filtering through ancient tree branches, a worn leather bag on the ground with a rusty lantern and old map, soft colored pencil and crayon drawing style, storybook aesthetic",
-    audio_prompt:
-        "Mysterious forest ambience at night, owl hooting, gentle wind, distant river sound",
-};
+// No initial mock data, we will fetch the prologue on mount
+
 
 export default function GameInterface({
     worldSetting,
@@ -52,10 +34,10 @@ export default function GameInterface({
         worldSetting,
         genreKey,
         history: [],
-        currentResponse: MOCK_RESPONSE,
+        currentResponse: null,
         seed: Math.floor(Math.random() * 1000000),
         turnCount: 0,
-        isLoading: false,
+        isLoading: true, // Start with loading for prologue
         error: null,
     });
 
@@ -67,18 +49,6 @@ export default function GameInterface({
                 ...prev,
                 isLoading: true,
                 error: null,
-                history: [
-                    ...prev.history,
-                    { role: "user" as const, content: action },
-                    ...(prev.currentResponse
-                        ? [
-                            {
-                                role: "assistant" as const,
-                                content: prev.currentResponse.scenario_text,
-                            },
-                        ]
-                        : []),
-                ],
             }));
             setTypingComplete(false);
 
@@ -92,7 +62,7 @@ export default function GameInterface({
                         action,
                         history: gameState.history,
                         seed: gameState.seed,
-                        turnCount: gameState.turnCount + 1,
+                        turnCount: gameState.turnCount + (action ? 1 : 0),
                     }),
                 });
 
@@ -105,23 +75,30 @@ export default function GameInterface({
                 setGameState((prev) => ({
                     ...prev,
                     currentResponse: data,
-                    turnCount: prev.turnCount + 1,
+                    turnCount: prev.turnCount + (action ? 1 : 0),
                     isLoading: false,
+                    history: [
+                        ...prev.history,
+                        ...(action ? [{ role: "user" as const, content: action }] : []),
+                        { role: "assistant" as const, content: data.scenario_text },
+                    ],
                 }));
             } catch (err) {
-                // On error, use mock data so the UI remains functional
-                console.error("API call failed, using mock response:", err);
+                console.error("API call failed:", err);
                 setGameState((prev) => ({
                     ...prev,
-                    currentResponse: MOCK_RESPONSE,
-                    turnCount: prev.turnCount + 1,
                     isLoading: false,
-                    error: "APIに接続できませんでした。モックデータを表示しています。",
+                    error: "APIに接続できませんでした。もう一度試してください。",
                 }));
             }
         },
         [worldSetting, genreKey, gameState.history, gameState.seed, gameState.turnCount]
     );
+
+    useEffect(() => {
+        sendAction("");
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
 
     const handleChoice = (choice: string) => {
         sendAction(choice);
