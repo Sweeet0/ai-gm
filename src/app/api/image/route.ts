@@ -18,12 +18,12 @@ export async function POST(req: NextRequest) {
 
         // Using official @huggingface/inference client
         const response = await client.textToImage({
+            provider: "hf-inference",
             model: "stabilityai/stable-diffusion-xl-base-1.0",
             inputs: fullPrompt,
             parameters: {
                 num_inference_steps: 30,
             },
-            // provider: "hf-inference" is often implicit or handled by the client
         });
 
         // The response from textToImage is typically a Blob in @huggingface/inference
