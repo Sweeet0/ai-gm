@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { HfInference } from "@huggingface/inference";
 
 const HUGGING_FACE_ACCESS_TOKEN = process.env.HUGGING_FACE_ACCESS_TOKEN || "";
+const client = new HfInference(HUGGING_FACE_ACCESS_TOKEN);
 
 export async function POST(req: NextRequest) {
     try {
@@ -14,39 +16,46 @@ export async function POST(req: NextRequest) {
         const prefix = "Soft colored pencil sketch, warm storybook illustration, hand-drawn texture, gentle lighting, ";
         const fullPrompt = prefix + prompt;
 
-        // Hugging Face API for Stability AI / SDXL
-        const model = "stabilityai/stable-diffusion-xl-base-1.0";
-        const url = `https://router.huggingface.co/models/${model}`;
-
-        const res = await fetch(url, {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${HUGGING_FACE_ACCESS_TOKEN}`,
-                "Content-Type": "application/json",
+        // Using official @huggingface/inference client
+        const response = await client.textToImage({
+            model: "stabilityai/stable-diffusion-xl-base-1.0",
+            inputs: fullPrompt,
+            parameters: {
+                num_inference_steps: 30,
             },
-            body: JSON.stringify({
-                inputs: fullPrompt,
-                options: { wait_for_model: true }
-            }),
+            // provider: "hf-inference" is often implicit or handled by the client
         });
 
-        if (!res.ok) {
-            const errorText = await res.text();
-            console.error("Hugging Face API Error:", errorText);
-            return NextResponse.json(
-                { error: `Hugging Face API returned error ${res.status}` },
-                { status: res.status }
-            );
+        // The response from textToImage is typically a Blob in @huggingface/inference
+        // But we handle it robustly to avoid TypeScript errors
+        const responseData = response as unknown;
+        let buffer: ArrayBuffer;
+
+        if (responseData instanceof Blob) {
+            buffer = await responseData.arrayBuffer();
+        } else if (typeof responseData === "string") {
+            // If the response is a string, it might be a Data URL or base64. 
+            // Most likely it's a base64 string if configured, or something went wrong.
+            // For now, we'll try to convert it if it looks like base64
+            const base64Data = responseData.includes("base64,")
+                ? responseData.split("base64,")[1]
+                : responseData;
+            const nodeBuffer = Buffer.from(base64Data, "base64");
+            buffer = nodeBuffer.buffer as ArrayBuffer;
+        } else {
+            throw new Error("Unexpected response type from textToImage");
         }
 
-        const blob = await res.blob();
-        const buffer = await blob.arrayBuffer();
         const base64Image = Buffer.from(buffer).toString("base64");
 
-        return NextResponse.json({ imageUrl: `data:image/png;base64,${base64Image}` });
+        return NextResponse.json({
+            imageUrl: `data:image/png;base64,${base64Image}`
+        });
 
     } catch (error) {
-        console.error("Image Route Error:", error);
-        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+        console.error("Image Generation Error:", error);
+        return NextResponse.json({
+            error: error instanceof Error ? error.message : "Internal server error"
+        }, { status: 500 });
     }
 }
