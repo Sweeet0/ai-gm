@@ -13,8 +13,12 @@ export async function POST(req: NextRequest) {
         const content = visualSummary || prompt;
         const fullPrompt = `${content}, ${prefix}`;
 
-        // Local Forge API Endpoint
-        const url = "http://localhost:7860/sdapi/v1/txt2img";
+        // Local Forge API Endpoints to try (Fallback for ECONNREFUSED)
+        const endpoints = [
+            "http://localhost:7860/sdapi/v1/txt2img",
+            "http://127.0.0.1:7860/sdapi/v1/txt2img",
+            "http://0.0.0.0:7860/sdapi/v1/txt2img"
+        ];
 
         // Request Body for Forge/Automatic1111 API
         const payload = {
@@ -25,36 +29,45 @@ export async function POST(req: NextRequest) {
             width: 896,
             height: 1152,
             sampler_name: "Euler a",
-            // You can add more Forge-specific settings here
         };
 
-        const res = await fetch(url, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payload),
-            cache: "no-store",
-        });
+        let res: Response | null = null;
+        let lastError: any = null;
 
-        if (!res.ok) {
-            const errorText = await res.text();
-            console.error("Forge API Error:", errorText);
+        for (const url of endpoints) {
+            try {
+                console.log(`Attempting image generation at: ${url}`);
+                res = await fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(payload),
+                    cache: "no-store",
+                });
+                if (res.ok) break;
+            } catch (err: any) {
+                console.warn(`Failed to connect to ${url}:`, err.message);
+                lastError = err;
+            }
+        }
+
+        if (!res || !res.ok) {
+            const errorText = res ? await res.text() : "All endpoints failed";
+            console.error("Forge API Error:", errorText, lastError?.cause);
             return NextResponse.json(
-                { error: `Forge API returned error ${res.status}` },
-                { status: res.status }
+                { error: `Forge API connection failed. Tried ${endpoints.length} URLs.` },
+                { status: res ? res.status : 500 }
             );
         }
 
         const data = await res.json();
-        // Forge API returns images as an array of base64 strings in the 'images' field
         const base64Image = data.images?.[0];
 
         if (!base64Image) {
             return NextResponse.json({ error: "No image received from Forge API" }, { status: 500 });
         }
 
-        // Convert base64 to Buffer and return as Image/PNG Response
         const buffer = Buffer.from(base64Image, 'base64');
         const blob = new Blob([buffer], { type: 'image/png' });
 
@@ -65,9 +78,9 @@ export async function POST(req: NextRequest) {
         });
 
     } catch (error: any) {
-        console.error("Local Image Generation Error:", error, error.cause);
+        console.error("Local Image Generation - Unhandled Error:", error, error.cause);
         return NextResponse.json(
-            { error: "Failed to connect to Local Forge API" },
+            { error: "Image generation logic failed" },
             { status: 500 }
         );
     }
