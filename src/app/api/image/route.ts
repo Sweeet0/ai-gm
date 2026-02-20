@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
         const fullPrompt = `${content}, ${prefix}`;
 
         // Local Forge API Endpoint configuration
-        const host = "192.168.0.12";
+        const host = "127.0.0.1";
         const port = 7860;
         const path = "/sdapi/v1/txt2img";
 
@@ -23,8 +23,8 @@ export async function POST(req: NextRequest) {
         const payload = {
             prompt: fullPrompt,
             negative_prompt: "photorealistic, realistic, 3d render, low quality, bad anatomy, blurry, text, watermark, (worst quality:1.4), (low quality:1.4)",
-            steps: 30,
-            cfg_scale: 8.5,
+            steps: 20,
+            cfg_scale: 7,
             width: 896,
             height: 1152,
             sampler_name: "Euler a",
