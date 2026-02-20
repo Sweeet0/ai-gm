@@ -25,17 +25,6 @@ export default function ActionBar({
         }
     };
 
-    // Color the "chaos" option (4th) differently
-    const getChaosStyle = (index: number) => {
-        if (index === 3) {
-            return {
-                borderColor: "var(--color-accent)",
-                color: "var(--color-accent)",
-            };
-        }
-        return {};
-    };
-
     return (
         <div className="card-sketch p-4">
             <h3
@@ -51,7 +40,6 @@ export default function ActionBar({
                     <button
                         key={i}
                         className="btn-sketch text-left text-sm animate-fade-in-up"
-                        style={getChaosStyle(i)}
                         disabled={disabled}
                         onClick={() => onChoiceSelect(choice)}
                     >

@@ -42,6 +42,8 @@ export default function GameInterface({
     });
 
     const [typingComplete, setTypingComplete] = useState(false);
+    const [showHistory, setShowHistory] = useState(false);
+    const [pendingAction, setPendingAction] = useState<string | null>(null);
     const initialized = useRef(false);
 
     const sendAction = useCallback(
@@ -54,6 +56,7 @@ export default function GameInterface({
                 error: null,
             }));
             setTypingComplete(false);
+            setPendingAction(action);
 
             try {
                 const res = await fetch("/api/gemini", {
@@ -88,6 +91,7 @@ export default function GameInterface({
                         { role: "assistant" as const, content: data.scenario_text },
                     ],
                 }));
+                setPendingAction(null);
             } catch (err) {
                 console.error("API call failed:", err);
                 setGameState((prev) => ({
@@ -133,6 +137,12 @@ export default function GameInterface({
                     📖 GEM Engine
                 </h1>
                 <div className="flex items-center gap-2 sm:gap-3">
+                    <button
+                        className="btn-sketch text-xs"
+                        onClick={() => setShowHistory(true)}
+                    >
+                        📜 履歴
+                    </button>
                     <button
                         className={`btn-sketch p-2 rounded-full flex items-center justify-center transition-all ${bgmEnabled ? 'text-accent' : 'opacity-40'}`}
                         onClick={() => setBgmEnabled(!bgmEnabled)}
@@ -265,12 +275,20 @@ export default function GameInterface({
                                         speed={25}
                                         onComplete={handleTypewriterComplete}
                                     />
-                                    {gameState.isLoading && (
-                                        <div className="mt-4 flex items-center gap-2">
-                                            <span className="animate-pulse-gentle text-lg">✍️</span>
+
+                                    {pendingAction && gameState.isLoading && (
+                                        <div className="mt-6 animate-fade-in-up">
+                                            <div className="story-log-action">
+                                                {pendingAction}
+                                            </div>
+                                            <div className="flex items-center gap-2 mt-2">
+                                                <span className="animate-pulse-gentle text-lg">✍️</span>
+                                                <span className="text-xs italic opacity-50">GMが次の展開を執筆中...</span>
+                                            </div>
                                         </div>
                                     )}
-                                    {bgmEnabled && response.audio_prompt && (
+
+                                    {bgmEnabled && response.audio_prompt && !gameState.isLoading && (
                                         <div className="mt-4 text-xs italic opacity-40 flex items-center gap-2">
                                             <span>🎵</span>
                                             <span>{response.audio_prompt}</span>
@@ -301,6 +319,46 @@ export default function GameInterface({
                     )}
                 </div>
             </div>
+
+            {/* History Modal */}
+            {showHistory && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+                    <div className="card-sketch w-full max-w-2xl max-h-[80vh] flex flex-col p-6 overflow-hidden animate-fade-in-up">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="title-handwritten text-2xl" style={{ color: "var(--color-accent)" }}>
+                                📜 冒険の記録
+                            </h2>
+                            <button className="btn-sketch p-2 rounded-full" onClick={() => setShowHistory(false)}>
+                                ❌
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
+                            {gameState.history.length === 0 ? (
+                                <p className="text-center italic opacity-50 py-10">
+                                    まだ物語の記録はありません。
+                                </p>
+                            ) : (
+                                gameState.history.map((entry, i) => (
+                                    <div key={i} className="animate-fade-in-up" style={{ animationDelay: `${i * 0.05}s` }}>
+                                        {entry.role === "user" ? (
+                                            <div className="flex justify-end pr-2">
+                                                <div className="story-log-action">
+                                                    {entry.content}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="p-3 bg-black/10 rounded-lg border-l-4 border-accent/30 text-sm leading-relaxed whitespace-pre-wrap">
+                                                {entry.content}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
