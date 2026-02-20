@@ -19,8 +19,9 @@ export async function POST(req: NextRequest) {
 
         // Using official @huggingface/inference client
         const response = await client.textToImage({
-            provider: "hf-inference",
-            model: "stabilityai/stable-diffusion-xl-base-1.0",
+            // provider: "hf-inference",
+            // model: "stabilityai/stable-diffusion-xl-base-1.0",
+            model: "runwayml/stable-diffusion-v1-5",
             inputs: fullPrompt,
             parameters: {
                 guidance_scale: 8.5,
