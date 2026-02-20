@@ -16,6 +16,9 @@ export default function Home() {
   };
 
   const handleRestart = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("gem-engine-save");
+    }
     setGameStarted(false);
     setWorldSetting("");
     setGenreKey("");

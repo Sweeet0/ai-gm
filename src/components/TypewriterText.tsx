@@ -6,14 +6,22 @@ interface Props {
     text: string;
     speed?: number;
     onComplete?: () => void;
+    skipAnimation?: boolean;
 }
 
-export default function TypewriterText({ text, speed = 30, onComplete }: Props) {
-    const [displayedLength, setDisplayedLength] = useState(0);
-    const [isComplete, setIsComplete] = useState(false);
+export default function TypewriterText({ text, speed = 30, onComplete, skipAnimation = false }: Props) {
+    const [displayedLength, setDisplayedLength] = useState(skipAnimation ? text.length : 0);
+    const [isComplete, setIsComplete] = useState(skipAnimation);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     useEffect(() => {
+        if (skipAnimation) {
+            setDisplayedLength(text.length);
+            setIsComplete(true);
+            onComplete?.();
+            return;
+        }
+
         setDisplayedLength(0);
         setIsComplete(false);
 

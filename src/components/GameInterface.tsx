@@ -22,22 +22,49 @@ export default function GameInterface({
 }: Props) {
     const genreConfig: GenreConfig = config.genres[genreKey] || config.genres.fantasy;
 
-    const [gameState, setGameState] = useState<GameState>({
-        phase: "playing",
-        worldSetting,
-        genreKey,
-        history: [],
-        currentResponse: null,
-        seed: Math.floor(Math.random() * 1000000),
-        turnCount: 0,
-        isLoading: false,
-        error: null,
+    const [gameState, setGameState] = useState<GameState>(() => {
+        // Hydrate from localStorage if available
+        if (typeof window !== "undefined") {
+            const saved = localStorage.getItem("gem-engine-save");
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    // Check if the world/genre matches the current selection to decide whether to resume
+                    if (parsed.worldSetting === worldSetting && parsed.genreKey === genreKey) {
+                        return {
+                            ...parsed,
+                            isLoading: false,
+                            error: null
+                        };
+                    }
+                } catch (e) {
+                    console.error("Failed to load save data:", e);
+                }
+            }
+        }
+        return {
+            phase: "playing",
+            worldSetting,
+            genreKey,
+            history: [],
+            currentResponse: null,
+            seed: Math.floor(Math.random() * 1000000),
+            turnCount: 0,
+            isLoading: false,
+            error: null,
+        };
     });
 
     const [typingComplete, setTypingComplete] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
     const [pendingAction, setPendingAction] = useState<string | null>(null);
     const initialized = useRef(false);
+
+    // Persistence: Save on changes
+    useEffect(() => {
+        const { isLoading, error, ...toSave } = gameState;
+        localStorage.setItem("gem-engine-save", JSON.stringify(toSave));
+    }, [gameState]);
 
     const sendAction = useCallback(
         async (action: string) => {
@@ -97,9 +124,17 @@ export default function GameInterface({
     useEffect(() => {
         if (!initialized.current) {
             initialized.current = true;
-            sendAction("");
+            // Only fetch prologue if we don't have a history yet (new game)
+            if (gameState.history.length === 0) {
+                sendAction("");
+            } else {
+                // If resuming, we've already done typing once, but for the resume 
+                // we might want to show the current text. 
+                // We set typingComplete to true so choice buttons appear.
+                setTypingComplete(true);
+            }
         }
-    }, [sendAction]);
+    }, [sendAction, gameState.history.length]);
 
     const handleTypewriterComplete = useCallback(() => {
         setTypingComplete(true);
@@ -254,7 +289,12 @@ export default function GameInterface({
                                     </div>
                                 ) : response ? (
                                     <div className="leading-relaxed text-sm sm:text-base" style={{ whiteSpace: "pre-wrap" }}>
-                                        <TypewriterText text={response.scenario_text} speed={25} onComplete={handleTypewriterComplete} />
+                                        <TypewriterText
+                                            text={response.scenario_text}
+                                            speed={25}
+                                            onComplete={handleTypewriterComplete}
+                                            skipAnimation={typingComplete}
+                                        />
 
                                         {pendingAction && gameState.isLoading && (
                                             <div className="mt-6 animate-fade-in-up">
