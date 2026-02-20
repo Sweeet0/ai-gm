@@ -51,6 +51,7 @@ const SYSTEM_PROMPT = `あなたは対話型ゲームマスター（GM）です�
   "choices": ["選択肢1", "選択肢2", "選択肢3", "選択肢4"],
   "is_question": プレイヤーが質問をした場合はtrue、
   "is_ending": 物語が完結（クリア、ゲームオーバー）した場合はtrue、
+  "visualSummary": "(English) Specific nouns describing the scene's key objects/locations for a Kamishibai (picture story show) style image. Examples: 'Old stone bridge, blooming flowers' or 'Spooky castle, dark clouds, lightning'.",
   "imagePrompt": "(English) Detailed image generation prompt for the current scene.",
   "audio_prompt": "(English) Short ambient audio description."
 } `;

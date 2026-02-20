@@ -149,7 +149,10 @@ export default function GameInterface({
                 const imgRes = await fetch("/api/image", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ prompt: data.imagePrompt }),
+                    body: JSON.stringify({
+                        prompt: data.imagePrompt,
+                        visualSummary: data.visualSummary
+                    }),
                 });
                 if (imgRes.ok) {
                     const blob = await imgRes.blob();

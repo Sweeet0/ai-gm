@@ -6,15 +6,16 @@ const client = new InferenceClient(HUGGING_FACE_ACCESS_TOKEN);
 
 export async function POST(req: NextRequest) {
     try {
-        const { prompt } = await req.json();
+        const { prompt, visualSummary } = await req.json();
 
-        if (!prompt) {
+        if (!prompt && !visualSummary) {
             return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
         }
 
-        // Add the fixed style prefix as requested
-        const prefix = "Soft colored pencil sketch, warm storybook illustration, hand-drawn texture, gentle lighting, ";
-        const fullPrompt = prefix + prompt;
+        // Image Consistency: Put specific content (visualSummary) first, then styling prefix
+        const prefix = "Soft colored pencil sketch, warm storybook illustration, hand-drawn texture, gentle lighting";
+        const content = visualSummary || prompt;
+        const fullPrompt = `${content}, ${prefix}`;
 
         // Using official @huggingface/inference client
         const response = await client.textToImage({
