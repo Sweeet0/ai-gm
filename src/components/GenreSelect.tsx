@@ -51,6 +51,64 @@ export default function GenreSelect({ onStart }: Props) {
         setCustomText("");
     };
 
+    const testForgeAPI = async () => {
+        console.log("--- Starting Forge API Debug Test ---");
+        const endpoints = [
+            "http://127.0.0.1:7860/sdapi/v1/txt2img",
+            "http://192.168.0.12:7860/sdapi/v1/txt2img"
+        ];
+
+        const payload = {
+            prompt: "1girl, solo, reading a book in a cozy library, soft lighting, masterpiece, best quality, Soft colored pencil sketch, warm storybook illustration, hand-drawn texture, gentle lighting",
+            negative_prompt: "photorealistic, realistic, 3d render, low quality, bad anatomy, blurry, text, watermark, (worst quality:1.4), (low quality:1.4)",
+            steps: 20,
+            cfg_scale: 7,
+            width: 896,
+            height: 1152,
+            sampler_name: "Euler a"
+        };
+
+        for (const url of endpoints) {
+            console.log(`\nTesting endpoint: ${url}`);
+            console.log(`Payload:`, payload);
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minutes timeout
+
+            try {
+                const startTime = Date.now();
+                const res = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+                const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+
+                console.log(`Status: ${res.status} ${res.statusText}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    console.log(`Success! Image generated in ${duration}s.`);
+                    console.log(`Images array length: ${data.images?.length}`);
+                } else {
+                    const errText = await res.text();
+                    console.error(`Error Response (${duration}s):`, errText);
+                }
+            } catch (err: any) {
+                clearTimeout(timeoutId);
+                if (err.name === 'AbortError') {
+                    console.error(`Request to ${url} timed out after 3 minutes.`);
+                } else {
+                    console.error(`Fetch error for ${url}:`, err);
+                }
+            }
+        }
+        console.log("\n--- Forge API Debug Test Completed ---");
+        alert("Debug test finished. Check console logs to see the result.");
+    };
+
     /* ─── Render: Method Selection ─── */
     if (!method) {
         return (
@@ -98,6 +156,15 @@ export default function GenreSelect({ onStart }: Props) {
                             🌟 おまかせ — GMにすべて任せる！
                         </button>
                     </div>
+
+                    <div className="mt-8 pt-4 border-t border-[var(--color-ink-light)] opacity-50">
+                        <button
+                            className="text-xs underline hover:text-blue-500"
+                            onClick={testForgeAPI}
+                        >
+                            [Debug] Test Image Generation API
+                        </button>
+                    </div>
                 </div>
             </div>
         );
@@ -124,8 +191,8 @@ export default function GenreSelect({ onStart }: Props) {
                             <button
                                 key={key}
                                 className={`badge-sketch cursor-pointer transition-all ${selectedGenre === key
-                                        ? "border-[var(--color-accent)] bg-[var(--color-parchment-dark)]"
-                                        : ""
+                                    ? "border-[var(--color-accent)] bg-[var(--color-parchment-dark)]"
+                                    : ""
                                     }`}
                                 onClick={() => {
                                     setSelectedGenre(key);
