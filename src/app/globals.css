@@ -242,6 +242,20 @@ body {
   animation: gentlePulse 2s ease-in-out infinite;
 }
 
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
 /* stagger children */
 .stagger-children>*:nth-child(1) {
   animation-delay: 0.05s;
@@ -304,6 +318,28 @@ body {
   border: 1px solid var(--color-pencil-gray);
   border-radius: var(--radius-rough);
   background: var(--color-parchment);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.badge-sketch:hover {
+  background: var(--color-parchment-dark);
+  transform: translateY(-1px);
+  border-color: var(--color-accent);
+}
+
+.badge-sketch:active {
+  transform: translateY(0);
+  background: var(--color-pencil-soft);
+  color: #1a1612;
+  /* Dark text for bright background */
+}
+
+.badge-sketch.selected {
+  border-color: var(--color-accent);
+  background: var(--color-parchment-dark);
+  color: var(--color-accent);
+  box-shadow: 0 0 8px rgba(230, 126, 80, 0.2);
 }
 
 /* ── HP bar ── */

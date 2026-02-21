@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
     try {
-        const { prompt, visualSummary } = await req.json();
+        const { prompt, visualSummary, imageStyleSuffix } = await req.json();
 
         if (!prompt && !visualSummary) {
             return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
@@ -25,7 +25,10 @@ export async function POST(req: NextRequest) {
         // 3. スタイル定義の刷新（アナログ・手書き感を強調）
         const prefix = "Rough colored pencil sketch, warm storybook illustration, hand-drawn organic lines";
         const artStyle = "messy watercolor wash, visible paper grain, crayon texture, traditional media feel, charcoal edges, oil painting, pastel, charcoal, ink, graphite, pencil";
-        const fullPrompt = `${prefix}, ${contentStr}, ${artStyle}`;
+
+        // Use dynamic suffix if provided, otherwise empty
+        const dynamicSuffix = imageStyleSuffix ? `${imageStyleSuffix}` : "";
+        const fullPrompt = `${prefix}, ${dynamicSuffix}, ${contentStr}, ${artStyle}`;
 
         // 4. Negative Promptの動的制御
         let negativePrompt = "photorealistic, realistic, 3d render, digital art, smooth gradient, sharp lines, low quality, (worst quality:1.4), text, watermark";

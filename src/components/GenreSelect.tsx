@@ -1,35 +1,57 @@
 "use client";
 
 import { useState } from "react";
-import type { WorldConfig, StartMethod } from "@/types";
+import type { WorldConfig, StartMethod, GenreConfig } from "@/types";
 import worldConfig from "@/world_config.json";
 
 const config = worldConfig as WorldConfig;
 const genreEntries = Object.entries(config.genres);
 
 interface Props {
-    onStart: (setting: string, genreKey: string) => void;
+    onStart: (setting: string, genreKey: string, config?: GenreConfig) => void;
 }
 
 export default function GenreSelect({ onStart }: Props) {
     const [method, setMethod] = useState<StartMethod | null>(null);
     const [customText, setCustomText] = useState("");
-    const [candidates, setCandidates] = useState<
-        { setting: string; genreKey: string }[]
-    >([]);
+    const [candidates, setCandidates] = useState<(GenreConfig & { genreKey: string })[]>([]);
     const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
+    const [isGenerating, setIsGenerating] = useState(false);
 
-    // Generate 3 random candidate settings from different genres
-    const generateCandidates = () => {
+    // Generate 3 random candidate settings from different genres via API
+    const generateCandidates = async () => {
+        setIsGenerating(true);
         const shuffled = [...genreEntries].sort(() => Math.random() - 0.5);
-        const picks = shuffled.slice(0, 3).map(([key, genre]) => {
-            const setting =
-                genre.sampleSettings[
-                Math.floor(Math.random() * genre.sampleSettings.length)
-                ];
-            return { setting, genreKey: key };
-        });
-        setCandidates(picks);
+        const selectedGenres = shuffled.slice(0, 3).map(([key]) => key);
+
+        try {
+            const res = await fetch("/api/gemini/candidates", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ selectedGenres }),
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                setCandidates(data);
+            } else {
+                console.error("Failed to generate candidates:", await res.text());
+                // Fallback to static if API fails
+                setCandidates(selectedGenres.map(key => ({
+                    ...config.genres[key],
+                    genreKey: key
+                })));
+            }
+        } catch (err) {
+            console.error("Error generating candidates:", err);
+            // Fallback to static
+            setCandidates(selectedGenres.map(key => ({
+                ...config.genres[key],
+                genreKey: key
+            })));
+        } finally {
+            setIsGenerating(false);
+        }
     };
 
     // "おまかせ" mode — pick one at random and force start
@@ -190,10 +212,7 @@ export default function GenreSelect({ onStart }: Props) {
                         {genreEntries.map(([key, genre]) => (
                             <button
                                 key={key}
-                                className={`badge-sketch cursor-pointer transition-all ${selectedGenre === key
-                                    ? "border-[var(--color-accent)] bg-[var(--color-parchment-dark)]"
-                                    : ""
-                                    }`}
+                                className={`badge-sketch ${selectedGenre === key ? "selected" : ""}`}
                                 onClick={() => {
                                     setSelectedGenre(key);
                                     if (!customText) {
@@ -246,6 +265,22 @@ export default function GenreSelect({ onStart }: Props) {
 
     /* ─── Render: Candidates ─── */
     if (method === "candidates") {
+        if (isGenerating) {
+            return (
+                <div className="flex items-center justify-center min-h-screen p-4">
+                    <div className="card-sketch p-8 sm:p-12 max-w-lg w-full text-center">
+                        <div className="loading-spinner w-12 h-12 border-4 border-t-transparent border-[var(--color-ink-dark)] rounded-full mx-auto mb-6 animate-spin"></div>
+                        <h2 className="title-handwritten text-2xl mb-2 animate-pulse">
+                            物語の舞台を探しています...
+                        </h2>
+                        <p className="text-sm" style={{ color: "var(--color-ink-light)" }}>
+                            AIが新しい世界を創造しています。しばらくお待ちください。
+                        </p>
+                    </div>
+                </div>
+            );
+        }
+
         return (
             <div className="flex items-center justify-center min-h-screen p-4">
                 <div className="card-sketch p-8 sm:p-10 max-w-lg w-full animate-fade-in-up">
@@ -264,17 +299,17 @@ export default function GenreSelect({ onStart }: Props) {
                             <button
                                 key={i}
                                 className="btn-sketch text-left animate-fade-in-up w-full"
-                                onClick={() => onStart(c.setting, c.genreKey)}
+                                onClick={() => onStart(c.sampleSettings[0], c.genreKey, c)}
                             >
-                                <span className="font-bold mr-2">
-                                    {config.genres[c.genreKey]?.label}
+                                <span className="font-bold mr-2 text-lg" style={{ color: "var(--color-accent)" }}>
+                                    {c.label}
                                 </span>
                                 <br />
                                 <span
-                                    className="text-sm"
-                                    style={{ color: "var(--color-ink-light)" }}
+                                    className="text-sm mt-1 inline-block"
+                                    style={{ color: "var(--color-ink-dark)" }}
                                 >
-                                    {c.setting}
+                                    {c.sampleSettings[0]}
                                 </span>
                             </button>
                         ))}

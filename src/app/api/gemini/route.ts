@@ -22,9 +22,14 @@ const SYSTEM_PROMPT = `あなたは対話型ゲームマスター（GM）です�
 4. プレイヤーが選択肢以外の自由なテキスト入力（無茶な行動など）をした場合、どんな行動でも、物語として成立させるか、面白おかしく劇的な結果（またはゲームオーバー）へ繋げてください。
 5. プレイヤーが行動ではなく「質問」をしてきた場合、ストーリーは一切進めず、状況の解説や回答のみを行ってください。回答の最後は必ず「他に確認したいことはありますか？」で締めてください。
 6. 同じ設定でやり直した場合、プレイヤーが「全く同じ行動」を取った際は、可能な限り同じ展開・同じ分岐結果を返してください。
+7. **ステータスの継続性と整合性**: 
+    - 前ターンのステータス値を基準とし、物語上の明確な理由（負傷、回復、休息、アイテム使用など）がない限り、数値を勝手に変動させないでください。
+    - 特に、不自然に数値が100にリセットされるような挙動は厳禁です。
+    - 演出として「軽微な負傷」や「疲労」状態で開始する場合のみ、初期値を100未満に設定することを許可しますが、その場合は必ずシナリオテキスト内でその理由に触れてください。
 
 ## 特別な指示：プロローグ
 - 物語の開始時（「これまでの経緯」が空で、アクションが空または「ゲームスタート」などの場合）、プレイヤーを物語の世界へ引き込む魅力的なプロローグを描写してください。
+- プロローグでは、プレイヤーのステータス（hpや特殊ステータス）を必ず最大値（100）から開始させてください。（特別な演出がある場合を除く）
 - プロローグは、プレイヤーが置かれている状況、周囲の環境、初期の目的を明確に示すようにしてください。
 
 ## 特別な指示：エンディング（クリア / ゲームオーバー）
@@ -80,15 +85,36 @@ async function callModel(model: string, userPrompt: string, seed: number) {
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { worldSetting, genreKey, action, history, seed, turnCount } = body;
+        const { worldSetting, genreKey, action, history, seed, turnCount, dynamicConfig, currentStatus } = body;
 
         const historyPrompt = Array.isArray(history) ? history
             .map((h: any) => `${h.role === "user" ? "Player" : "GM"}: ${h.content}`)
             .join("\n") : "";
 
+        const dynamicPrompt = dynamicConfig ? `
+DYNAMIC WORLD SETTINGS:
+- Title: ${dynamicConfig.label}
+- Secondary Stat: ${(Object.values(dynamicConfig.stats)[1] as any)?.label || "N/A"}
+- Situation: ${dynamicConfig.situationLabel}
+- Inventory: ${dynamicConfig.inventoryLabel}
+- Keywords: ${dynamicConfig.keywords?.join(", ") || ""}
+
+IMPORTANT: Please track the Secondary Stat mentioned above in your 'status' JSON output using any suitable key name (e.g. 'custom_stat', 'mp', etc.) alongside 'hp'.
+` : "";
+
+        const statusContext = currentStatus ? `
+CURRENT STATUS (CONTINUITY):
+- HP: ${currentStatus.hp}
+- Secondary Stat: ${Object.entries(currentStatus).find(([k]) => k !== "hp" && k !== "inventory" && k !== "situation")?.[1] || "N/A"}
+- Situation: ${currentStatus.situation}
+- Inventory: ${currentStatus.inventory?.join(", ") || "None"}
+` : "CURRENT STATUS: Game Start (Initial state: 100/100)";
+
         const userPrompt = `
 WORLD SETTING: ${worldSetting || ""}
 GENRE: ${genreKey || ""}
+${dynamicPrompt}
+${statusContext}
 TURN COUNT: ${turnCount || 0}
 PREVIOUS HISTORY:
 ${historyPrompt}

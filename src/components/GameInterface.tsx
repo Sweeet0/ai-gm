@@ -12,15 +12,17 @@ const config = worldConfig as WorldConfig;
 interface Props {
     worldSetting: string;
     genreKey: string;
+    dynamicConfig?: GenreConfig | null;
     onRestart: () => void;
 }
 
 export default function GameInterface({
     worldSetting,
     genreKey,
+    dynamicConfig,
     onRestart,
 }: Props) {
-    const genreConfig: GenreConfig = config.genres[genreKey] || config.genres.fantasy;
+    const genreConfig: GenreConfig = dynamicConfig || config.genres[genreKey] || config.genres.fantasy;
 
     const [gameState, setGameState] = useState<GameState>(() => {
         // Hydrate from localStorage if available
@@ -88,6 +90,8 @@ export default function GameInterface({
                         history: gameState.history,
                         seed: gameState.seed,
                         turnCount: gameState.turnCount + (action ? 1 : 0),
+                        dynamicConfig,
+                        currentStatus: gameState.currentResponse?.status,
                     }),
                 });
 
@@ -151,7 +155,8 @@ export default function GameInterface({
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         prompt: data.imagePrompt,
-                        visualSummary: data.visualSummary
+                        visualSummary: data.visualSummary,
+                        imageStyleSuffix: genreConfig.imageStyleSuffix
                     }),
                 });
                 if (imgRes.ok) {
@@ -334,7 +339,7 @@ export default function GameInterface({
                                         {response?.imagePrompt ? "🎨" : "🖼️"}
                                     </span>
                                     <p className="text-xs italic" style={{ color: "var(--color-pencil-soft)" }}>
-                                        {response?.imagePrompt ? "AIが情景を描いています..." : "冒メントの始まりを待っています..."}
+                                        {response?.imagePrompt ? "AIが情景を描いています..." : "冒険の始まりを待っています..."}
                                     </p>
                                     {response?.imagePrompt && (
                                         <div className="mt-3 flex justify-center">
