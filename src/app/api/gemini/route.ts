@@ -71,7 +71,6 @@ async function callModel(model: string, userPrompt: string, seed: number) {
                 topK: 40,
                 maxOutputTokens: 2048,
                 responseMimeType: "application/json",
-                seed: seed,
             },
         }),
     });
@@ -80,16 +79,17 @@ async function callModel(model: string, userPrompt: string, seed: number) {
 
 export async function POST(req: NextRequest) {
     try {
-        const { worldSetting, genreKey, action, history, seed, turnCount } = await req.json();
+        const body = await req.json();
+        const { worldSetting, genreKey, action, history, seed, turnCount } = body;
 
-        const historyPrompt = history
+        const historyPrompt = Array.isArray(history) ? history
             .map((h: any) => `${h.role === "user" ? "Player" : "GM"}: ${h.content}`)
-            .join("\n");
+            .join("\n") : "";
 
         const userPrompt = `
-WORLD SETTING: ${worldSetting}
-GENRE: ${genreKey}
-TURN COUNT: ${turnCount}
+WORLD SETTING: ${worldSetting || ""}
+GENRE: ${genreKey || ""}
+TURN COUNT: ${turnCount || 0}
 PREVIOUS HISTORY:
 ${historyPrompt}
 
@@ -102,7 +102,7 @@ PLAYER ACTION: ${action || "ゲームスタート"}
 
         for (const model of allModels) {
             console.log(`Trying model: ${model}`);
-            const geminiRes = await callModel(model, userPrompt, seed);
+            const geminiRes = await callModel(model, userPrompt, seed || Math.floor(Math.random() * 1000000));
 
             if (geminiRes.status === 429) {
                 console.warn(`Quota exceeded for ${model}. Trying next...`);
@@ -110,6 +110,8 @@ PLAYER ACTION: ${action || "ゲームスタート"}
             }
 
             if (!geminiRes.ok) {
+                const errorText = await geminiRes.text();
+                console.error(`Gemini API Error for ${model}:`, errorText);
                 return NextResponse.json(
                     { error: `Model ${model} returned error ${geminiRes.status}` },
                     { status: geminiRes.status }

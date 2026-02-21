@@ -8,18 +8,35 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
         }
 
-        // Image Consistency: Put specific content (visualSummary) first, then styling prefix
-        const prefix = "Soft colored pencil sketch, warm storybook illustration, hand-drawn texture, gentle lighting";
-        const content = visualSummary || prompt;
-        const fullPrompt = `${content}, ${prefix}`;
-
-        // Local Forge API Endpoint (Fixed IP to bypass DNS issues)
         const url = "http://192.168.0.12:7860/sdapi/v1/txt2img";
 
-        // Request Body for Forge/Automatic1111 API - Optimized for BluePencil-XL
+        // 1. 人物判定用のキーワードリスト（英語）
+        const characterKeywords = [
+            "person", "human",
+            "man", "woman", "old man", "old woman", "child", "kid", "boy", "girl", "he", "she", "him", "her",
+            "villager", "enemy", "ally", "companion", "soldier", "knight",
+            "face", "eyes", "hair"
+        ];
+
+        // 2. 物語の内容(content)に人物キーワードが含まれているか判定
+        const contentStr = (visualSummary || prompt).toLowerCase();
+        const hasCharacter = characterKeywords.some(word => contentStr.includes(word));
+
+        // 3. スタイル定義の刷新（アナログ・手書き感を強調）
+        const prefix = "Rough colored pencil sketch, warm storybook illustration, hand-drawn organic lines";
+        const artStyle = "messy watercolor wash, visible paper grain, crayon texture, traditional media feel, charcoal edges, oil painting, pastel, charcoal, ink, graphite, pencil";
+        const fullPrompt = `${prefix}, ${contentStr}, ${artStyle}`;
+
+        // 4. Negative Promptの動的制御
+        let negativePrompt = "photorealistic, realistic, 3d render, digital art, smooth gradient, sharp lines, low quality, (worst quality:1.4), text, watermark";
+        if (!hasCharacter) {
+            negativePrompt += ", human, person, character, face, girl, boy, body, man, woman, people";
+        }
+
+        // Request Body for Forge/Automatic1111 API - Optimized for analog style
         const payload = {
             prompt: fullPrompt,
-            negative_prompt: "photorealistic, realistic, 3d render, low quality, bad anatomy, blurry, text, watermark, (worst quality:1.4), (low quality:1.4)",
+            negative_prompt: negativePrompt,
             steps: 20,
             cfg_scale: 7,
             width: 896,
@@ -27,7 +44,8 @@ export async function POST(req: NextRequest) {
             sampler_name: "Euler a",
         };
 
-        console.log("Fetching from:", url);
+        console.log("Fetching from:", url, "HasCharacter:", hasCharacter);
+        console.log("Payload:", payload);
 
         // Using specialized fetch with duplex
         const res = await fetch(url, {
@@ -58,13 +76,10 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "No image received from Forge API" }, { status: 500 });
         }
 
-        const buffer = Buffer.from(base64Image, 'base64');
-        const blob = new Blob([buffer], { type: 'image/png' });
-
-        return new NextResponse(blob, {
-            headers: {
-                'Content-Type': 'image/png',
-            },
+        // Instead of constructing a Node Blob (which can cause 500 errors with large payloads),
+        // we'll return the base64 string formatted as a Data URL directly in JSON.
+        return NextResponse.json({
+            imageUrl: `data:image/png;base64,${base64Image}`
         });
 
     } catch (error: any) {

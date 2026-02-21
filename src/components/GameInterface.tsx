@@ -155,8 +155,8 @@ export default function GameInterface({
                     }),
                 });
                 if (imgRes.ok) {
-                    const blob = await imgRes.blob();
-                    const imageUrl = URL.createObjectURL(blob);
+                    const imgData = await imgRes.json();
+                    const imageUrl = imgData.imageUrl;
 
                     setGameState(prev => {
                         if (prev.currentResponse?.scenario_text === data.scenario_text) {
@@ -167,6 +167,9 @@ export default function GameInterface({
                         }
                         return prev;
                     });
+                } else {
+                    const errText = await imgRes.text();
+                    console.error(`Image API Error (${imgRes.status}):`, errText);
                 }
             } catch (err) {
                 console.error("Failed to fetch image:", err);
@@ -221,7 +224,10 @@ export default function GameInterface({
     }, [sendAction, gameState.history.length, gameState.currentResponse]); // Added currentResponse to trigger correctly on reset
 
     const handleTypewriterComplete = useCallback(() => {
-        setTypingComplete(true);
+        // Wrap in setTimeout to avoid React "Cannot update a component while rendering a different component" error
+        setTimeout(() => {
+            setTypingComplete(true);
+        }, 0);
     }, []);
 
     const handleChoice = (choice: string) => {
