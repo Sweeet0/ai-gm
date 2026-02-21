@@ -29,18 +29,17 @@ export async function POST(req: NextRequest) {
 
         console.log("Fetching from:", url);
 
-        // Using specialized fetch with duplex and explicit Host header
+        // Using specialized fetch with duplex
         const res = await fetch(url, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "Host": "127.0.0.1:7860", // Explicit Host header as requested
             },
             body: JSON.stringify(payload),
             cache: "no-store",
             // @ts-ignore - duplex is required in some Node versions for POST with body
             duplex: 'half',
-            signal: (AbortSignal as any).timeout(60000), // 60 seconds timeout
+            signal: (AbortSignal as any).timeout(180000), // 3 minutes timeout
         });
 
         if (!res.ok) {
